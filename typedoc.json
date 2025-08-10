@@ -9,10 +9,7 @@
   "categorizeByGroup": true,
   "sort": ["source-order"],
   "readme": "README.md",
-  "exclude": [
-    "**/*.test.ts",
-    "node_modules/**/*"
-  ],
+  "exclude": ["**/*.test.ts", "node_modules/**/*"],
   "excludeExternals": true,
   "excludePrivate": true,
   "excludeProtected": true,
