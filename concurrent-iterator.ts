@@ -82,7 +82,7 @@
  * - **signal**: AbortSignal for cancellation support
  */
 
-import type { Options } from './common';
+import { _makeAbortSignal, type Options } from './common';
 import { newQueue } from './queue';
 
 /**
@@ -209,7 +209,7 @@ class DefaultStream<T> implements Stream<T> {
     this.config = config;
     this.concurrency = config.concurrency;
     this.batchSize = config.batchSize;
-    this.signal = config.signal;
+    this.signal = _makeAbortSignal(config);
   }
 
   map<U>(fn: (value: T) => Promise<U>, config?: MapConfig): Stream<U> {

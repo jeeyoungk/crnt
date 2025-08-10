@@ -1,5 +1,5 @@
 export { type Semaphore, newSemaphore } from './semaphore';
-export { DefaultQueue, type Queue, newQueue } from './queue';
+export { type Queue, newQueue } from './queue';
 export { type Options, CrntError } from './common';
 export {
   fromAsyncIterable,

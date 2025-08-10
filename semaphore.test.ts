@@ -329,3 +329,126 @@ test('maybeAcquire with zero initial permits always returns false', () => {
   expect(semaphore.maybeAcquire()).toBe(false);
   expect(semaphore.maybeAcquire()).toBe(false);
 });
+
+test('Semaphore.run executes function and returns result', async () => {
+  const semaphore = new DefaultSemaphore(1);
+  const result = await semaphore.run(async () => {
+    return 'test result';
+  });
+
+  expect(result).toBe('test result');
+});
+
+test('Semaphore.run acquires and releases permit correctly', async () => {
+  const semaphore = new DefaultSemaphore(1);
+  let executionStarted = false;
+  let permitAvailable = false;
+
+  const runPromise = semaphore.run(async () => {
+    executionStarted = true;
+    // Check if another operation can acquire the permit (should fail)
+    permitAvailable = semaphore.maybeAcquire();
+    if (permitAvailable) {
+      semaphore.release(); // Clean up if we accidentally acquired
+    }
+    return 'done';
+  });
+
+  const result = await runPromise;
+
+  expect(executionStarted).toBe(true);
+  expect(permitAvailable).toBe(false); // Permit should not have been available during execution
+  expect(result).toBe('done');
+
+  // Permit should be available after completion
+  expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+test('Semaphore.run releases permit even when function throws', async () => {
+  const semaphore = new DefaultSemaphore(1);
+  const error = new Error('test error');
+
+  await expect(
+    semaphore.run(async () => {
+      throw error;
+    })
+  ).rejects.toThrow('test error');
+
+  // Permit should be available after error
+  expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+test('Semaphore.run handles multiple concurrent operations', async () => {
+  const semaphore = new DefaultSemaphore(2);
+  const results: number[] = [];
+  let activeOperations = 0;
+  let maxConcurrent = 0;
+
+  const operations = Array.from({ length: 5 }, (_, i) =>
+    semaphore.run(async () => {
+      activeOperations++;
+      maxConcurrent = Math.max(maxConcurrent, activeOperations);
+
+      // Simulate work
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      results.push(i);
+      activeOperations--;
+      return i;
+    })
+  );
+
+  const operationResults = await Promise.all(operations);
+
+  expect(maxConcurrent).toBeLessThanOrEqual(2);
+  expect(operationResults).toEqual([0, 1, 2, 3, 4]);
+  expect(results).toHaveLength(5);
+});
+
+test('Semaphore.run can be aborted with AbortSignal', async () => {
+  const semaphore = new DefaultSemaphore(1);
+  const controller = new AbortController();
+
+  // Acquire the permit to block the run operation
+  await semaphore.acquire();
+
+  const runPromise = semaphore.run(
+    async () => {
+      return 'should not complete';
+    },
+    { signal: controller.signal }
+  );
+
+  // Give it a moment to start waiting
+  await new Promise(resolve => setTimeout(resolve, 1));
+
+  // Abort the operation
+  controller.abort();
+
+  await expect(runPromise).rejects.toThrow('The operation was aborted');
+
+  // Permit should still be held by the original acquire
+  expect(semaphore.maybeAcquire()).toBe(false);
+
+  // Release the original permit
+  semaphore.release();
+  expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+test('Semaphore.run with already aborted signal throws immediately', async () => {
+  const semaphore = new DefaultSemaphore(1);
+  const controller = new AbortController();
+  controller.abort();
+
+  await expect(
+    semaphore.run(
+      async () => {
+        return 'should not execute';
+      },
+      { signal: controller.signal }
+    )
+  ).rejects.toThrow('The operation was aborted');
+
+  // Permit should still be available since function never ran
+  expect(semaphore.maybeAcquire()).toBe(true);
+});

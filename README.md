@@ -1,45 +1,18 @@
-# crnt (Current)
+# CRNT (Current)
 
-TypeScript library for async concurrency primitives.
+CRNT is a TypeScript library for async and concurrent programming primitives.
 
 ## Installation
 
 ```bash
 npm install crnt
+pnpm instsall crnt
+bun add crnt
 ```
 
-## Development
+# Overview / Philosophy
 
-To install dependencies:
-
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-To build:
-
-```bash
-bun run build
-```
-
-To run tests:
-
-```bash
-bun test
-```
-
-To run code quality checks:
-
-```bash
-bun run format:check
-bun run lint
-bun run typecheck
-```
-
-This project was created using `bun init` in bun v1.2.19. [Bun](https://bun.com) is a fast all-in-one JavaScript runtime.
+- TypeScript - first
+- Unopinionated, lightweight, and un-intrusive
+- Support for modern constructs (ex: [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController))
+- Performance

@@ -1,4 +1,4 @@
-import { type Options } from './common';
+import { _makeAbortSignal, type Options } from './common';
 
 export interface Queue<T> {
   /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
@@ -112,7 +112,7 @@ export class DefaultQueue<T> implements Queue<T> {
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
   async enqueue(item: T, options?: Options): Promise<void> {
-    const signal = options?.signal;
+    const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
 
     // Try immediate handoff first (works for both zero-capacity and regular queues)
@@ -151,7 +151,7 @@ export class DefaultQueue<T> implements Queue<T> {
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
   async dequeue(options?: Options): Promise<T> {
-    const signal = options?.signal;
+    const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
 
     // Try immediate handoff first (works for both zero-capacity and regular queues)

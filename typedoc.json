@@ -1,7 +1,7 @@
 {
   "entryPoints": ["index.ts"],
   "out": "docs",
-  "name": "crnt - Async Concurrency Primitives",
+  "name": "crnt",
   "theme": "default",
   "hideGenerator": true,
   "includeVersion": true,

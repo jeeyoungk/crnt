@@ -1,4 +1,4 @@
-import { CrntError, type Options } from './common';
+import { _makeAbortSignal, CrntError, type Options } from './common';
 
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
@@ -7,6 +7,8 @@ export interface Semaphore {
   maybeAcquire(): boolean;
   /** release a permit, making it available for other operations */
   release(): void;
+  /** run a function with a semaphore, acquiring a permit before running and releasing it after */
+  run<T>(fn: () => Promise<T>, options?: Options): Promise<T>;
 }
 
 export function newSemaphore(permits: number): Semaphore {
@@ -20,23 +22,13 @@ export class DefaultSemaphore implements Semaphore {
   private readonly maxPermits: number;
   private readonly waiting: Set<WaitingEntry> = new Set();
 
-  /**
-   * Creates a new Semaphore with the specified number of permits.
-   * @param permits - Maximum number of concurrent operations allowed
-   */
   constructor(permits: number) {
     this.permits = permits;
     this.maxPermits = permits;
   }
 
-  /**
-   * Acquires a permit. If no permits are available, waits until one becomes available.
-   * @param option - Optional configuration including AbortSignal
-   * @returns Promise that resolves when a permit is acquired
-   * @throws {DOMException} If the operation is aborted via AbortSignal
-   */
   async acquire(options?: Options): Promise<void> {
-    const signal = options?.signal;
+    const signal = _makeAbortSignal(options);
 
     signal?.throwIfAborted();
 
@@ -68,10 +60,6 @@ export class DefaultSemaphore implements Semaphore {
     return promise;
   }
 
-  /**
-   * Attempts to acquire a permit without waiting.
-   * @returns true if a permit was successfully acquired, false otherwise
-   */
   maybeAcquire(): boolean {
     if (this.permits > 0) {
       this.permits--;
@@ -80,11 +68,6 @@ export class DefaultSemaphore implements Semaphore {
     return false;
   }
 
-  /**
-   * Releases a permit, making it available for other operations.
-   * If there are waiting operations, immediately gives the permit to the next waiter.
-   * @throws {CrntError} If releasing would exceed the initial number of permits
-   */
   release(): void {
     if (this.waiting.size > 0) {
       const next = this.waiting.values().next().value;
@@ -97,6 +80,15 @@ export class DefaultSemaphore implements Semaphore {
         );
       }
       this.permits++;
+    }
+  }
+
+  async run<T>(fn: () => Promise<T>, options?: Options): Promise<T> {
+    await this.acquire(options);
+    try {
+      return await fn();
+    } finally {
+      this.release();
     }
   }
 }
