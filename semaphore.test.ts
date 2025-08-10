@@ -1,9 +1,9 @@
 import { test, expect } from 'bun:test';
-import { Semaphore } from './semaphore';
+import { DefaultSemaphore } from './semaphore';
 import { CrntError } from './common';
 
 test('Semaphore allows immediate acquisition when permits are available', async () => {
-  const semaphore = new Semaphore(2);
+  const semaphore = new DefaultSemaphore(2);
 
   // Should acquire immediately without waiting
   await semaphore.acquire();
@@ -11,7 +11,7 @@ test('Semaphore allows immediate acquisition when permits are available', async 
 });
 
 test('Semaphore blocks when no permits are available', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   let acquired = false;
 
   // First acquisition should succeed immediately
@@ -33,7 +33,7 @@ test('Semaphore blocks when no permits are available', async () => {
 });
 
 test('Semaphore maintains FIFO order for waiting operations', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   const results: number[] = [];
 
   // Acquire the only permit
@@ -60,7 +60,7 @@ test('Semaphore maintains FIFO order for waiting operations', async () => {
 });
 
 test('Semaphore handles concurrent acquire and release operations', async () => {
-  const semaphore = new Semaphore(3);
+  const semaphore = new DefaultSemaphore(3);
   const completedOperations: number[] = [];
 
   // Start multiple concurrent operations
@@ -80,7 +80,7 @@ test('Semaphore handles concurrent acquire and release operations', async () => 
 });
 
 test('Semaphore works correctly with zero initial permits', async () => {
-  const semaphore = new Semaphore(0);
+  const semaphore = new DefaultSemaphore(0);
   let acquired = false;
 
   // Should block immediately
@@ -98,7 +98,7 @@ test('Semaphore works correctly with zero initial permits', async () => {
 });
 
 test('Semaphore handles rapid acquire/release cycles', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   let counter = 0;
 
   // Perform rapid acquire/release cycles
@@ -112,7 +112,7 @@ test('Semaphore handles rapid acquire/release cycles', async () => {
 });
 
 test('Semaphore maintains correct permit count under stress', async () => {
-  const semaphore = new Semaphore(5);
+  const semaphore = new DefaultSemaphore(5);
   let activeOperations = 0;
   let maxConcurrent = 0;
 
@@ -136,7 +136,7 @@ test('Semaphore maintains correct permit count under stress', async () => {
 });
 
 test('Semaphore throws CrntError when releasing more permits than initial count', () => {
-  const semaphore = new Semaphore(2);
+  const semaphore = new DefaultSemaphore(2);
 
   // Release without acquiring should throw
   expect(() => semaphore.release()).toThrow(CrntError);
@@ -146,7 +146,7 @@ test('Semaphore throws CrntError when releasing more permits than initial count'
 });
 
 test('Semaphore throws CrntError when releasing after acquiring all permits', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
 
   // Acquire the permit
   await semaphore.acquire();
@@ -162,7 +162,7 @@ test('Semaphore throws CrntError when releasing after acquiring all permits', as
 });
 
 test('Semaphore allows normal operation without exceeding initial permits', async () => {
-  const semaphore = new Semaphore(3);
+  const semaphore = new DefaultSemaphore(3);
 
   // Acquire all permits
   await semaphore.acquire();
@@ -179,7 +179,7 @@ test('Semaphore allows normal operation without exceeding initial permits', asyn
 });
 
 test('Semaphore with zero initial permits throws on any release without waiters', () => {
-  const semaphore = new Semaphore(0);
+  const semaphore = new DefaultSemaphore(0);
 
   // Any release without waiters should throw
   expect(() => semaphore.release()).toThrow(CrntError);
@@ -189,7 +189,7 @@ test('Semaphore with zero initial permits throws on any release without waiters'
 });
 
 test('Semaphore acquire with already aborted AbortSignal throws immediately', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   const controller = new AbortController();
   controller.abort();
 
@@ -199,7 +199,7 @@ test('Semaphore acquire with already aborted AbortSignal throws immediately', as
 });
 
 test('Semaphore acquire can be aborted while waiting', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   const controller = new AbortController();
 
   // Acquire the only permit
@@ -219,7 +219,7 @@ test('Semaphore acquire can be aborted while waiting', async () => {
 });
 
 test('Semaphore cleans up aborted operations from waiting queue', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   const controller1 = new AbortController();
   const controller2 = new AbortController();
 
@@ -247,7 +247,7 @@ test('Semaphore cleans up aborted operations from waiting queue', async () => {
 });
 
 test('Semaphore removes abort listener when operation completes normally', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
   const controller = new AbortController();
 
   // Should acquire immediately without waiting
@@ -264,7 +264,7 @@ test('Semaphore removes abort listener when operation completes normally', async
 });
 
 test('Semaphore works normally without AbortSignal', async () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
 
   // Should work exactly as before
   await semaphore.acquire();
@@ -273,7 +273,7 @@ test('Semaphore works normally without AbortSignal', async () => {
 });
 
 test('maybeAcquire returns true when permits are available', () => {
-  const semaphore = new Semaphore(2);
+  const semaphore = new DefaultSemaphore(2);
 
   // Should acquire successfully
   expect(semaphore.maybeAcquire()).toBe(true);
@@ -281,7 +281,7 @@ test('maybeAcquire returns true when permits are available', () => {
 });
 
 test('maybeAcquire returns false when no permits are available', () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
 
   // Acquire the only permit
   expect(semaphore.maybeAcquire()).toBe(true);
@@ -291,7 +291,7 @@ test('maybeAcquire returns false when no permits are available', () => {
 });
 
 test('maybeAcquire works with release cycle', () => {
-  const semaphore = new Semaphore(1);
+  const semaphore = new DefaultSemaphore(1);
 
   // Acquire permit
   expect(semaphore.maybeAcquire()).toBe(true);
@@ -307,7 +307,7 @@ test('maybeAcquire works with release cycle', () => {
 });
 
 test('maybeAcquire does not interfere with async acquire', async () => {
-  const semaphore = new Semaphore(2);
+  const semaphore = new DefaultSemaphore(2);
 
   // Mix sync and async acquisition
   expect(semaphore.maybeAcquire()).toBe(true);
@@ -324,7 +324,7 @@ test('maybeAcquire does not interfere with async acquire', async () => {
 });
 
 test('maybeAcquire with zero initial permits always returns false', () => {
-  const semaphore = new Semaphore(0);
+  const semaphore = new DefaultSemaphore(0);
 
   expect(semaphore.maybeAcquire()).toBe(false);
   expect(semaphore.maybeAcquire()).toBe(false);

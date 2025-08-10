@@ -7,3 +7,6 @@ export class CrntError extends Error {
     this.name = 'CrntError';
   }
 }
+export interface AbortOptions {
+  signal?: AbortSignal; // same signature as fetch()
+}

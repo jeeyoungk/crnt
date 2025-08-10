@@ -79,10 +79,10 @@
  * - **batchDelay**: Timeout in ms to flush incomplete batches (optional)
  * - **name**: Progress bar name (when multibar is provided)
  * - **multibar**: cli-progress MultiBar instance for progress tracking
- * - **abortSignal**: AbortSignal for cancellation support
+ * - **signal**: AbortSignal for cancellation support
  */
 
-import { Semaphore } from './semaphore';
+import { DefaultSemaphore } from './semaphore';
 
 /**
  * Configuration options for map operations.
@@ -138,7 +138,7 @@ export interface DefaultConfig extends MapConfig, BatchConfig {
    * AbortSignal for cancellation support.
    * When aborted, stream processing will stop and throw an AbortError.
    */
-  abortSignal?: AbortSignal;
+  signal?: AbortSignal;
 }
 
 /**
@@ -214,14 +214,14 @@ class DefaultStream<T> implements Stream<T> {
 
   concurrency?: number;
   batchSize?: number;
-  abortSignal?: AbortSignal;
+  signal?: AbortSignal;
 
   constructor(iterable: AsyncIterable<T>, config: DefaultConfig = {}) {
     this.iterable = iterable;
     this.config = config;
     this.concurrency = config.concurrency;
     this.batchSize = config.batchSize;
-    this.abortSignal = config.abortSignal;
+    this.signal = config.signal;
   }
 
   map<U>(fn: (value: T) => Promise<U>, config?: MapConfig): Stream<U> {
@@ -238,7 +238,7 @@ class DefaultStream<T> implements Stream<T> {
     const concurrency = config?.concurrency ?? this.concurrency ?? 1;
     const batchSize = config?.batchSize ?? this.batchSize ?? 10;
     const batchDelay = config?.batchDelay;
-    const signal = this.abortSignal;
+    const signal = this.signal;
 
     async function* mapBatchIterable(source: AsyncIterable<T>) {
       type BatchTask = { type: 'BATCH'; results: U[]; promiseId: number };
@@ -531,7 +531,7 @@ export function toBufferedAsyncIterable<T>(
     [Symbol.asyncIterator]: () => {
       const sourceIterator = source[Symbol.asyncIterator]();
       const buffer: T[] = [];
-      const semaphore = new Semaphore(bufferSize);
+      const semaphore = new DefaultSemaphore(bufferSize);
       let sourceCompleted = false;
       let sourceError: unknown = null;
       let fillerStarted = false;
@@ -763,7 +763,7 @@ export function toBufferedAsyncIterable<T>(
  *
  * try {
  *   const results = await fromIterable(largeDataset, {
- *     abortSignal: controller.signal
+ *     signal: controller.signal
  *   })
  *     .map(processItem, { concurrency: 5 });
  * } catch (error) {

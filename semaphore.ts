@@ -1,10 +1,12 @@
-import { CrntError } from './common';
+import { CrntError, type AbortOptions } from './common';
 
-interface WaitingEntry {
-  resolve: () => void;
+export interface Semaphore {
+  acquire(options?: AbortOptions): Promise<void>;
+  maybeAcquire(): boolean;
+  release(): void;
 }
 
-export class Semaphore {
+export class DefaultSemaphore implements Semaphore {
   /** current number of active permits */
   private permits: number;
   /** maximum number of permits */
@@ -26,8 +28,8 @@ export class Semaphore {
    * @returns Promise that resolves when a permit is acquired
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
-  async acquire(option?: { signal?: AbortSignal }): Promise<void> {
-    const signal = option?.signal;
+  async acquire(options?: AbortOptions): Promise<void> {
+    const signal = options?.signal;
 
     signal?.throwIfAborted();
 
@@ -90,4 +92,8 @@ export class Semaphore {
       this.permits++;
     }
   }
+}
+
+interface WaitingEntry {
+  resolve: () => void;
 }
