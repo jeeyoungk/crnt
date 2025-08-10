@@ -1,8 +1,9 @@
 name: Release and Publish
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   release:
@@ -17,15 +18,28 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+
       - name: Install dependencies
         run: bun install
+
+      - name: Run type check
+        run: bun run typecheck
+
+      - name: Run linting
+        run: bun run lint
+
+      - name: Run tests
+        run: bun test
+
       - name: Build package
         run: bun tsup
+
       - name: Release and Publish
-        run: bun publish
+        run: bun run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
