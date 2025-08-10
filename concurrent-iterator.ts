@@ -82,10 +82,11 @@
  * - **signal**: AbortSignal for cancellation support
  */
 
+import type { AbortOptions } from './common';
 import { newQueue } from './queue';
 
 /**
- * Configuration options for map operations.
+ * Configuration options for {@link Stream.map} operations.
  */
 export interface MapConfig {
   /**
@@ -105,9 +106,6 @@ export interface MapConfig {
 export interface BatchConfig extends MapConfig {
   /**
    * Maximum number of items per batch.
-   * Items are grouped into batches before being passed to the processing function.
-   *
-   * @default 10
    */
   batchSize?: number;
 
@@ -133,23 +131,17 @@ export interface BatchConfig extends MapConfig {
 /**
  * Default configuration options that can be applied to all stream operations.
  */
-export interface DefaultConfig extends MapConfig, BatchConfig {
-  /**
-   * AbortSignal for cancellation support.
-   * When aborted, stream processing will stop and throw an AbortError.
-   */
-  signal?: AbortSignal;
-}
+export interface DefaultConfig extends MapConfig, BatchConfig, AbortOptions {}
 
 /**
- * Stream interface that supports concurrent processing with batching and progress tracking.
- *
- * A Stream is both an AsyncIterable (can be iterated with `for await`) and a PromiseLike
- * (can be awaited to get all results as an array).
+ * Stream is an abstraction over AsyncIterable that supports concurrent processing with batching.
  *
  * @template T - The type of items in the stream
  */
-interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]>, DefaultConfig {
+export interface Stream<T>
+  extends AsyncIterable<T>,
+    PromiseLike<T[]>,
+    DefaultConfig {
   /**
    * Maps a function over each item in the stream with controlled concurrency.
    *
@@ -206,6 +198,13 @@ interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]>, DefaultConfig {
     fn: (value: T[]) => Promise<U[]>,
     config?: BatchConfig
   ): Stream<U>;
+}
+
+export function newStream<T>(
+  iterable: AsyncIterable<T>,
+  config: DefaultConfig = {}
+): Stream<T> {
+  return new DefaultStream(iterable, config);
 }
 
 class DefaultStream<T> implements Stream<T> {
