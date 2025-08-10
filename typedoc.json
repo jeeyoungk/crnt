@@ -1,0 +1,30 @@
+{
+  "entryPoints": ["index.ts"],
+  "out": "docs",
+  "name": "crnt - Async Concurrency Primitives",
+  "theme": "default",
+  "hideGenerator": true,
+  "includeVersion": true,
+  "searchInComments": true,
+  "categorizeByGroup": true,
+  "sort": ["source-order"],
+  "readme": "README.md",
+  "exclude": [
+    "**/*.test.ts",
+    "node_modules/**/*"
+  ],
+  "excludeExternals": true,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "validation": {
+    "notExported": true,
+    "invalidLink": true,
+    "notDocumented": false
+  },
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext"],
+    "strict": true
+  }
+}

@@ -25,6 +25,7 @@
     "format": "prettier --write . --cache",
     "format:check": "prettier --check . --cache",
     "check": "bun run lint && bun run format:check && bun run typecheck",
+    "docs": "typedoc",
     "semantic-release": "semantic-release"
   },
   "keywords": [
@@ -54,7 +55,8 @@
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
     "semantic-release": "^24.2.7",
-    "tsup": "^8.5.0"
+    "tsup": "^8.5.0",
+    "typedoc": "^0.28.9"
   },
   "peerDependencies": {
     "typescript": "^5"
