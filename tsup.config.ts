@@ -12,7 +12,7 @@ export default defineConfig({
   outDir: 'dist',
   outExtension({ format }) {
     return {
-      js: format === 'cjs' ? '.js' : '.mjs'
+      js: format === 'cjs' ? '.js' : '.mjs',
     }
-  }
+  },
 })
