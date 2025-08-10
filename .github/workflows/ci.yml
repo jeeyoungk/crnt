@@ -32,7 +32,7 @@ jobs:
         run: bun run typecheck
 
       - name: Build package
-        run: bun run build
+        run: bun run tsup
 
       - name: Run tests
         run: bun test
