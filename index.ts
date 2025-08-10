@@ -1,1 +1,1 @@
-export { Semaphore } from './semaphore'
+export { Semaphore } from './semaphore';

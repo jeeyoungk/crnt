@@ -1,13 +1,13 @@
 export class Semaphore {
-  private permits: number
-  private readonly waiting: (() => void)[] = []
+  private permits: number;
+  private readonly waiting: (() => void)[] = [];
 
   /**
    * Creates a new Semaphore with the specified number of permits.
    * @param permits - Maximum number of concurrent operations allowed
    */
   constructor(permits: number) {
-    this.permits = permits
+    this.permits = permits;
   }
 
   /**
@@ -16,13 +16,13 @@ export class Semaphore {
    */
   async acquire(): Promise<void> {
     if (this.permits > 0) {
-      this.permits--
-      return
+      this.permits--;
+      return;
     }
 
     return new Promise<void>(resolve => {
-      this.waiting.push(resolve)
-    })
+      this.waiting.push(resolve);
+    });
   }
 
   /**
@@ -31,10 +31,10 @@ export class Semaphore {
    */
   release(): void {
     if (this.waiting.length > 0) {
-      const next = this.waiting.shift()
-      next?.()
+      const next = this.waiting.shift();
+      next!();
     } else {
-      this.permits++
+      this.permits++;
     }
   }
 }
