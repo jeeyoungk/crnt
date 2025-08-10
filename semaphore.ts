@@ -1,8 +1,8 @@
-import { CrntError, type AbortOptions } from './common';
+import { CrntError, type Options } from './common';
 
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
-  acquire(options?: AbortOptions): Promise<void>;
+  acquire(options?: Options): Promise<void>;
   /** synchronously acquire a permit if one is available, otherwise return false */
   maybeAcquire(): boolean;
   /** release a permit, making it available for other operations */
@@ -35,7 +35,7 @@ export class DefaultSemaphore implements Semaphore {
    * @returns Promise that resolves when a permit is acquired
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
-  async acquire(options?: AbortOptions): Promise<void> {
+  async acquire(options?: Options): Promise<void> {
     const signal = options?.signal;
 
     signal?.throwIfAborted();

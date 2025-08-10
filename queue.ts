@@ -1,10 +1,10 @@
-import { type AbortOptions } from './common';
+import { type Options } from './common';
 
 export interface Queue<T> {
   /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
-  enqueue(item: T, options?: AbortOptions): Promise<void>;
+  enqueue(item: T, options?: Options): Promise<void>;
   /** asynchronously dequeue an item, waiting until an item becomes available, or throw if aborted */
-  dequeue(options?: AbortOptions): Promise<T>;
+  dequeue(options?: Options): Promise<T>;
   /** synchronously enqueue an item if there is space, or return false */
   maybeEnqueue(item: T): boolean;
   /** synchronously dequeue an item if there is one, or return false */
@@ -111,7 +111,7 @@ export class DefaultQueue<T> implements Queue<T> {
    * @param options - Optional configuration including AbortSignal
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
-  async enqueue(item: T, options?: AbortOptions): Promise<void> {
+  async enqueue(item: T, options?: Options): Promise<void> {
     const signal = options?.signal;
     signal?.throwIfAborted();
 
@@ -150,7 +150,7 @@ export class DefaultQueue<T> implements Queue<T> {
    * @returns Promise that resolves to the dequeued item
    * @throws {DOMException} If the operation is aborted via AbortSignal
    */
-  async dequeue(options?: AbortOptions): Promise<T> {
+  async dequeue(options?: Options): Promise<T> {
     const signal = options?.signal;
     signal?.throwIfAborted();
 

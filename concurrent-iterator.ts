@@ -82,7 +82,7 @@
  * - **signal**: AbortSignal for cancellation support
  */
 
-import type { AbortOptions } from './common';
+import type { Options } from './common';
 import { newQueue } from './queue';
 
 /**
@@ -122,7 +122,7 @@ export interface BatchConfig extends MapConfig {
 /**
  * Default configuration options that can be applied to all stream operations.
  */
-export interface StreamConfig extends MapConfig, BatchConfig, AbortOptions {}
+export interface StreamConfig extends MapConfig, BatchConfig, Options {}
 
 /**
  * Stream is an abstraction over AsyncIterable that supports concurrent processing with batching.

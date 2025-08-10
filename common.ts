@@ -7,6 +7,9 @@ export class CrntError extends Error {
     this.name = 'CrntError';
   }
 }
-export interface AbortOptions {
-  signal?: AbortSignal; // same signature as fetch()
+
+/** Common options for many crnt functions. */
+export interface Options {
+  /** same signature as fetch(), but for aborting operations */
+  signal?: AbortSignal;
 }
