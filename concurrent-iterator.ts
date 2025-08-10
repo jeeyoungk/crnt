@@ -361,7 +361,7 @@ class DefaultStream<T> implements Stream<T> {
 
   then<TResult1 = T[], TResult2 = never>(
     onfulfilled?: ((value: T[]) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | null
+    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
   ): PromiseLike<TResult1 | TResult2> {
     return this.toArray().then(onfulfilled, onrejected);
   }
@@ -461,7 +461,7 @@ export function fromIterable<T>(
  * @param iterable - The synchronous iterable to convert
  * @returns An AsyncIterable that yields the same items
  */
-function toAsyncIterable<T, TReturn = any, TNext = any>(
+function toAsyncIterable<T, TReturn = unknown, TNext = unknown>(
   iterable: Iterable<T, TReturn, TNext>
 ): AsyncIterable<T, TReturn, TNext> {
   return {
@@ -479,7 +479,7 @@ function toAsyncIterable<T, TReturn = any, TNext = any>(
       }
       if (iterator.throw) {
         response.throw = async (
-          error?: any
+          error?: unknown
         ): Promise<IteratorResult<T, TReturn>> => {
           return iterator.throw!(error);
         };
@@ -614,14 +614,14 @@ export function toBufferedAsyncIterable<T>(
 
           // No buffered items and source is completed
           if (sourceCompleted) {
-            return { value: undefined as any, done: true };
+            return { value: undefined, done: true };
           }
 
           // This should not happen in normal operation
           throw new Error('Buffer underrun - internal error');
         },
 
-        async return(value?: any): Promise<IteratorResult<T>> {
+        async return(value?: unknown): Promise<IteratorResult<T>> {
           sourceCompleted = true; // Signal filler to stop
           if (sourceIterator.return) {
             return await sourceIterator.return(value);
@@ -629,7 +629,7 @@ export function toBufferedAsyncIterable<T>(
           return { value, done: true };
         },
 
-        async throw(error?: any): Promise<IteratorResult<T>> {
+        async throw(error?: unknown): Promise<IteratorResult<T>> {
           sourceCompleted = true; // Signal filler to stop
           if (sourceIterator.throw) {
             return await sourceIterator.throw(error);
