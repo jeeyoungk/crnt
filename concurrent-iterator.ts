@@ -82,7 +82,6 @@
  * - **signal**: AbortSignal for cancellation support
  */
 
-import { DefaultSemaphore } from './semaphore';
 import { newQueue } from './queue';
 
 /**
