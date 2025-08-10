@@ -1,6 +1,6 @@
 {
-  "name": "async-primitives",
-  "version": "0.1.0",
+  "name": "crnt",
+  "version": "0.0.20250809",
   "description": "TypeScript library for async concurrency primitives",
   "type": "module",
   "main": "./dist/index.js",
