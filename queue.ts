@@ -35,7 +35,7 @@ export class DefaultQueue<T> implements Queue<T> {
     this.items.push(item);
 
     // If there are waiters for dequeue, wake one up
-    if (this.waitingDequeue.size > 0) {
+    while (this.waitingDequeue.size > 0 && this.items.length > 0) {
       const next = this.waitingDequeue.values().next().value;
       const dequeuedItem = this.items.shift()!;
       next!.resolve(dequeuedItem);
@@ -57,7 +57,7 @@ export class DefaultQueue<T> implements Queue<T> {
     const item = this.items.shift()!;
 
     // If there are waiters for enqueue, wake one up and enqueue their item
-    if (this.waitingEnqueue.size > 0) {
+    while (this.waitingEnqueue.size > 0 && this.items.length < this.capacity) {
       const next = this.waitingEnqueue.values().next().value;
       this.items.push(next!.item);
       next!.resolve();
