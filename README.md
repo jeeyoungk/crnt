@@ -5,7 +5,7 @@ TypeScript library for async concurrency primitives.
 ## Installation
 
 ```bash
-npm install concurrency-primitives
+npm install crnt
 ```
 
 ## Development

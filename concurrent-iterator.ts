@@ -115,15 +115,6 @@ export interface BatchConfig extends MapConfig {
    * When specified, incomplete batches will be flushed and processed
    * after this timeout, even if they haven't reached the target batchSize.
    * Useful for handling slow or irregular input streams.
-   *
-   * @example
-   * ```typescript
-   * // Flush incomplete batches after 5 seconds of inactivity
-   * stream.mapBatch(processBatch, {
-   *   batchSize: 100,
-   *   batchDelay: 5000
-   * });
-   * ```
    */
   batchDelay?: number;
 }
@@ -235,7 +226,7 @@ class DefaultStream<T> implements Stream<T> {
     config?: BatchConfig
   ): Stream<U> {
     const concurrency = config?.concurrency ?? this.concurrency ?? 1;
-    const batchSize = config?.batchSize ?? this.batchSize ?? 10;
+    const batchSize = config?.batchSize ?? this.batchSize ?? 1;
     const batchDelay = config?.batchDelay;
     const signal = this.signal;
 
