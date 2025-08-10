@@ -1,4 +1,6 @@
-export { DefaultSemaphore as Semaphore } from './semaphore';
+export { type Semaphore, newSemaphore } from './semaphore';
+export { type Queue, newQueue } from './queue';
+
 export {
   fromAsyncIterable,
   fromIterable,

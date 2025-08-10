@@ -1,9 +1,16 @@
 import { CrntError, type AbortOptions } from './common';
 
 export interface Semaphore {
+  /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
   acquire(options?: AbortOptions): Promise<void>;
+  /** synchronously acquire a permit if one is available, otherwise return false */
   maybeAcquire(): boolean;
+  /** release a permit, making it available for other operations */
   release(): void;
+}
+
+export function newSemaphore(permits: number): Semaphore {
+  return new DefaultSemaphore(permits);
 }
 
 export class DefaultSemaphore implements Semaphore {

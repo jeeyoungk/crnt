@@ -7,14 +7,14 @@ test('Queue allows immediate enqueue/dequeue when capacity available', async () 
   // Should enqueue immediately
   await queue.enqueue(1);
   await queue.enqueue(2);
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   // Should dequeue immediately
   const item1 = await queue.dequeue();
   const item2 = await queue.dequeue();
   expect(item1).toBe(1);
   expect(item2).toBe(2);
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
 });
 
 test('Queue blocks enqueue when at capacity', async () => {
@@ -24,7 +24,7 @@ test('Queue blocks enqueue when at capacity', async () => {
   // Fill the queue to capacity
   await queue.enqueue('first');
   await queue.enqueue('second');
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   // Third enqueue should block
   const enqueuePromise = queue.enqueue('third').then(() => {
@@ -34,14 +34,14 @@ test('Queue blocks enqueue when at capacity', async () => {
   // Give a small delay to ensure the enqueue() would have completed if it wasn't blocked
   await new Promise(resolve => setTimeout(resolve, 10));
   expect(enqueued).toBe(false);
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   // Dequeue one item and verify the waiting enqueue completes
   const item = await queue.dequeue();
   expect(item).toBe('first');
   await enqueuePromise;
   expect(enqueued).toBe(true);
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 });
 
 test('Queue blocks dequeue when empty', async () => {
@@ -50,7 +50,7 @@ test('Queue blocks dequeue when empty', async () => {
   let dequeuedValue: number | undefined;
 
   // Dequeue from empty queue should block
-  const dequeuePromise = queue.dequeue().then((value) => {
+  const dequeuePromise = queue.dequeue().then(value => {
     dequeued = true;
     dequeuedValue = value;
   });
@@ -64,7 +64,7 @@ test('Queue blocks dequeue when empty', async () => {
   await dequeuePromise;
   expect(dequeued).toBe(true);
   expect(dequeuedValue).toBe(42);
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
 });
 
 test('Queue maintains FIFO order for enqueue operations', async () => {
@@ -118,13 +118,13 @@ test('maybeEnqueue returns true when space available, false when full', () => {
   const queue = new DefaultQueue<string>(2);
 
   expect(queue.maybeEnqueue('first')).toBe(true);
-  expect(queue.size()).toBe(1);
+  expect(queue.size).toBe(1);
 
   expect(queue.maybeEnqueue('second')).toBe(true);
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   expect(queue.maybeEnqueue('third')).toBe(false);
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 });
 
 test('maybeDequeue returns [item, true] when items available, [void, false] when empty', () => {
@@ -194,14 +194,14 @@ test('Queue with infinite capacity', async () => {
   for (let i = 0; i < 1000; i++) {
     await queue.enqueue(i);
   }
-  expect(queue.size()).toBe(1000);
+  expect(queue.size).toBe(1000);
 
   // Should be able to dequeue all items
   for (let i = 0; i < 1000; i++) {
     const item = await queue.dequeue();
     expect(item).toBe(i);
   }
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
 });
 
 test('Queue handles concurrent producers and consumers', async () => {
@@ -231,7 +231,7 @@ test('Queue handles concurrent producers and consumers', async () => {
 
   expect(produced.length).toBe(30);
   expect(consumed.length).toBe(30);
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
 
   // All produced items should have been consumed
   produced.sort((a, b) => a - b);
@@ -262,28 +262,229 @@ test('Queue cleanup on abort removes waiting operations', async () => {
   await queue.dequeue(); // Remove item 1
   await enqueue2; // Should complete successfully
 
-  expect(queue.size()).toBe(1);
+  expect(queue.size).toBe(1);
   expect(await queue.dequeue()).toBe(3);
 });
 
 test('Queue size tracking is accurate', async () => {
   const queue = new DefaultQueue<string>(3);
 
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
 
   await queue.enqueue('a');
-  expect(queue.size()).toBe(1);
+  expect(queue.size).toBe(1);
 
   await queue.enqueue('b');
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   await queue.dequeue();
-  expect(queue.size()).toBe(1);
+  expect(queue.size).toBe(1);
 
   await queue.enqueue('c');
-  expect(queue.size()).toBe(2);
+  expect(queue.size).toBe(2);
 
   await queue.dequeue();
   await queue.dequeue();
-  expect(queue.size()).toBe(0);
+  expect(queue.size).toBe(0);
+});
+
+// Zero-capacity queue tests (DefaultQueue with capacity 0)
+test('Zero-capacity queue has size 0 always', () => {
+  const queue = new DefaultQueue<number>(0);
+  expect(queue.size).toBe(0);
+});
+
+test('Zero-capacity queue maybeEnqueue fails when no waiting dequeuers', () => {
+  const queue = new DefaultQueue<string>(0);
+  expect(queue.maybeEnqueue('test')).toBe(false);
+  expect(queue.size).toBe(0);
+});
+
+test('Zero-capacity queue maybeDequeue fails when no waiting enqueuers', () => {
+  const queue = new DefaultQueue<number>(0);
+  const result = queue.maybeDequeue();
+  expect(result).toEqual([undefined, false]);
+});
+
+test('Zero-capacity queue passes item directly from enqueuer to dequeuer', async () => {
+  const queue = new DefaultQueue<string>(0);
+  let dequeuedValue: string | undefined;
+  let dequeueCompleted = false;
+
+  // Start dequeue operation (will wait)
+  const dequeuePromise = queue.dequeue().then(value => {
+    dequeuedValue = value;
+    dequeueCompleted = true;
+  });
+
+  // Give a small delay to ensure dequeue is waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+  expect(dequeueCompleted).toBe(false);
+
+  // Enqueue should complete immediately and wake up the dequeuer
+  await queue.enqueue('hello');
+  await dequeuePromise;
+
+  expect(dequeueCompleted).toBe(true);
+  expect(dequeuedValue).toBe('hello');
+  expect(queue.size).toBe(0);
+});
+
+test('Zero-capacity queue passes item directly from dequeuer to enqueuer via maybeEnqueue', async () => {
+  const queue = new DefaultQueue<number>(0);
+  let dequeuedValue: number | undefined;
+  let dequeueCompleted = false;
+
+  // Start dequeue operation (will wait)
+  const dequeuePromise = queue.dequeue().then(value => {
+    dequeuedValue = value;
+    dequeueCompleted = true;
+  });
+
+  // Give a small delay to ensure dequeue is waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+  expect(dequeueCompleted).toBe(false);
+
+  // maybeEnqueue should succeed because there's a waiting dequeuer
+  expect(queue.maybeEnqueue(42)).toBe(true);
+  await dequeuePromise;
+
+  expect(dequeueCompleted).toBe(true);
+  expect(dequeuedValue).toBe(42);
+});
+
+test('Zero-capacity queue passes item directly from enqueuer to dequeuer via maybeDequeue', async () => {
+  const queue = new DefaultQueue<string>(0);
+  let enqueueCompleted = false;
+
+  // Start enqueue operation (will wait)
+  const enqueuePromise = queue.enqueue('world').then(() => {
+    enqueueCompleted = true;
+  });
+
+  // Give a small delay to ensure enqueue is waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+  expect(enqueueCompleted).toBe(false);
+
+  // maybeDequeue should succeed because there's a waiting enqueuer
+  const result = queue.maybeDequeue();
+  expect(result).toEqual(['world', true]);
+  await enqueuePromise;
+
+  expect(enqueueCompleted).toBe(true);
+});
+
+test('Zero-capacity queue handles multiple waiting dequeuers in FIFO order', async () => {
+  const queue = new DefaultQueue<number>(0);
+  const results: number[] = [];
+
+  // Start multiple dequeue operations
+  const promises = [
+    queue.dequeue().then(value => results.push(value)),
+    queue.dequeue().then(value => results.push(value)),
+    queue.dequeue().then(value => results.push(value)),
+  ];
+
+  // Give time for all dequeues to be waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  // Enqueue items one by one - should wake up dequeuers in FIFO order
+  await queue.enqueue(1);
+  await queue.enqueue(2);
+  await queue.enqueue(3);
+
+  await Promise.all(promises);
+  expect(results).toEqual([1, 2, 3]);
+});
+
+test('Zero-capacity queue handles multiple waiting enqueuers in FIFO order', async () => {
+  const queue = new DefaultQueue<string>(0);
+  const results: string[] = [];
+
+  // Start multiple enqueue operations
+  const promises = [
+    queue.enqueue('a').then(() => results.push('a')),
+    queue.enqueue('b').then(() => results.push('b')),
+    queue.enqueue('c').then(() => results.push('c')),
+  ];
+
+  // Give time for all enqueues to be waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  // Dequeue items one by one - should wake up enqueuers in FIFO order
+  expect(await queue.dequeue()).toBe('a');
+  expect(await queue.dequeue()).toBe('b');
+  expect(await queue.dequeue()).toBe('c');
+
+  await Promise.all(promises);
+  expect(results).toEqual(['a', 'b', 'c']);
+});
+
+test('Zero-capacity queue supports AbortSignal for enqueue', async () => {
+  const queue = new DefaultQueue<number>(0);
+  const controller = new AbortController();
+
+  // Start a blocking enqueue
+  const enqueuePromise = queue.enqueue(123, { signal: controller.signal });
+
+  // Give time for enqueue to be waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  // Abort the operation
+  controller.abort();
+
+  // Should reject with abort error
+  await expect(enqueuePromise).rejects.toThrow();
+});
+
+test('Zero-capacity queue supports AbortSignal for dequeue', async () => {
+  const queue = new DefaultQueue<string>(0);
+  const controller = new AbortController();
+
+  // Start a blocking dequeue
+  const dequeuePromise = queue.dequeue({ signal: controller.signal });
+
+  // Give time for dequeue to be waiting
+  await new Promise(resolve => setTimeout(resolve, 10));
+
+  // Abort the operation
+  controller.abort();
+
+  // Should reject with abort error
+  await expect(dequeuePromise).rejects.toThrow();
+});
+
+test('Zero-capacity queue concurrent producers and consumers rendezvous correctly', async () => {
+  const queue = new DefaultQueue<number>(0);
+  const produced: number[] = [];
+  const consumed: number[] = [];
+
+  // Start multiple producers
+  const producers = Array.from({ length: 3 }, async (_, producerId) => {
+    for (let i = 0; i < 5; i++) {
+      const value = producerId * 10 + i;
+      await queue.enqueue(value);
+      produced.push(value);
+    }
+  });
+
+  // Start multiple consumers
+  const consumers = Array.from({ length: 3 }, async () => {
+    for (let i = 0; i < 5; i++) {
+      const value = await queue.dequeue();
+      consumed.push(value);
+    }
+  });
+
+  // Wait for all producers and consumers to complete
+  await Promise.all([...producers, ...consumers]);
+
+  expect(produced.length).toBe(15);
+  expect(consumed.length).toBe(15);
+  expect(queue.size).toBe(0);
+
+  // All produced items should have been consumed
+  produced.sort((a, b) => a - b);
+  consumed.sort((a, b) => a - b);
+  expect(consumed).toEqual(produced);
 });

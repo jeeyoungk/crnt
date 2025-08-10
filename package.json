@@ -17,14 +17,15 @@
     "dist"
   ],
   "scripts": {
-    "build": "tsup",
+    "tsup": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "format": "prettier --write . --cache",
-    "format:check": "prettier --check . --cache"
+    "format:check": "prettier --check . --cache",
+    "check": "bun run lint && bun run format:check && bun run typecheck"
   },
   "keywords": [
     "async",

@@ -83,6 +83,7 @@
  */
 
 import { DefaultSemaphore } from './semaphore';
+import { newQueue } from './queue';
 
 /**
  * Configuration options for map operations.
@@ -530,10 +531,10 @@ export function toBufferedAsyncIterable<T>(
   return {
     [Symbol.asyncIterator]: () => {
       const sourceIterator = source[Symbol.asyncIterator]();
-      const buffer: T[] = [];
-      const semaphore = new DefaultSemaphore(bufferSize);
+      const queue = newQueue<'DONE' | ['ITEM', T] | ['ERROR', unknown]>(
+        bufferSize
+      );
       let sourceCompleted = false;
-      let sourceError: unknown = null;
       let fillerStarted = false;
 
       // Background filler that runs indefinitely until source is complete
@@ -543,85 +544,56 @@ export function toBufferedAsyncIterable<T>(
 
         try {
           while (!sourceCompleted) {
-            // Wait for buffer space to become available
-            await semaphore.acquire();
-
-            // Check again after acquiring permit (source might have completed)
-            if (sourceCompleted) {
-              semaphore.release(); // Return the permit we won't use
+            const result = await sourceIterator.next();
+            if (result.done) {
+              await queue.enqueue('DONE');
               break;
             }
 
-            try {
-              const result = await sourceIterator.next();
-              if (result.done) {
-                sourceCompleted = true;
-                semaphore.release(); // Return the permit we won't use
-                break;
-              }
-
-              // Add to buffer (we have a permit, so this is safe)
-              buffer.push(result.value);
-            } catch (error) {
-              sourceError = error;
-              sourceCompleted = true;
-              semaphore.release(); // Return the permit on error
-              break;
-            }
+            // Enqueue item - this will wait if buffer is full
+            await queue.enqueue(['ITEM', result.value]);
           }
         } catch (error) {
-          // Error in semaphore operations
-          sourceError = error;
-          sourceCompleted = true;
+          await queue.enqueue(['ERROR', error]);
         }
       };
 
+      let iteratorCompleted = false;
+
       return {
         async next(): Promise<IteratorResult<T>> {
+          if (iteratorCompleted) {
+            return { value: undefined, done: true };
+          }
+
           // Start background filler on first call
           if (!fillerStarted) {
             startBackgroundFiller(); // Don't await - let it run in background
           }
 
-          // If we have an error from the source, throw it
-          if (sourceError) {
-            throw sourceError;
-          }
+          // Get the next message from the queue
+          const message = await queue.dequeue();
 
-          // If we have buffered items, return the first one
-          if (buffer.length > 0) {
-            const value = buffer.shift()!;
-            semaphore.release(); // Release a permit since we consumed an item
-            return { value, done: false };
-          }
-
-          // No buffered items - wait for filler to add some or complete
-          while (!sourceCompleted && buffer.length === 0) {
-            // Small delay to allow filler to work
-            await new Promise(resolve => setTimeout(resolve, 1));
-
-            if (sourceError) {
-              throw sourceError;
-            }
-          }
-
-          // Try again after waiting
-          if (buffer.length > 0) {
-            const value = buffer.shift()!;
-            semaphore.release(); // Release a permit since we consumed an item
-            return { value, done: false };
-          }
-
-          // No buffered items and source is completed
-          if (sourceCompleted) {
+          // Handle different message types
+          if (message === 'DONE') {
+            sourceCompleted = true;
+            iteratorCompleted = true;
             return { value: undefined, done: true };
           }
 
-          // This should not happen in normal operation
-          throw new Error('Buffer underrun - internal error');
+          const [type, payload] = message;
+
+          if (type === 'ERROR') {
+            sourceCompleted = true;
+            throw payload;
+          } else if (type === 'ITEM') {
+            return { value: payload, done: false };
+          }
+          throw new Error('Unknown message type from queue');
         },
 
         async return(value?: unknown): Promise<IteratorResult<T>> {
+          iteratorCompleted = true;
           sourceCompleted = true; // Signal filler to stop
           if (sourceIterator.return) {
             return await sourceIterator.return(value);
@@ -630,6 +602,7 @@ export function toBufferedAsyncIterable<T>(
         },
 
         async throw(error?: unknown): Promise<IteratorResult<T>> {
+          iteratorCompleted = true;
           sourceCompleted = true; // Signal filler to stop
           if (sourceIterator.throw) {
             return await sourceIterator.throw(error);

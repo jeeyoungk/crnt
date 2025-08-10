@@ -1,22 +1,34 @@
 import { type AbortOptions } from './common';
 
 export interface Queue<T> {
-  maybeEnqueue(item: T): boolean;
-  maybeDequeue(): [T, true] | [void, false];
+  /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
   enqueue(item: T, options?: AbortOptions): Promise<void>;
+  /** asynchronously dequeue an item, waiting until an item becomes available, or throw if aborted */
   dequeue(options?: AbortOptions): Promise<T>;
-  size(): number;
+  /** synchronously enqueue an item if there is space, or return false */
+  maybeEnqueue(item: T): boolean;
+  /** synchronously dequeue an item if there is one, or return false */
+  maybeDequeue(): [T, true] | [undefined, false];
+  /** the number of items in the queue */
+  readonly size: number;
+  /** the maximum number of items the queue can hold */
+  readonly capacity: number;
+}
+
+export function newQueue<T>(capacity: number = Infinity): Queue<T> {
+  return new DefaultQueue<T>(capacity);
 }
 
 export class DefaultQueue<T> implements Queue<T> {
   private readonly items: T[] = [];
-  private readonly capacity: number;
+  readonly capacity: number;
   private readonly waitingEnqueue: Set<EnqueueWaitingEntry<T>> = new Set();
   private readonly waitingDequeue: Set<DequeueWaitingEntry<T>> = new Set();
 
   /**
    * Creates a new Queue with the specified capacity.
-   * @param capacity - Maximum number of items the queue can hold
+   * @param capacity - Maximum number of items the queue can hold.
+   *                   Use 0 for a zero-capacity queue (rendezvous point)
    */
   constructor(capacity: number = Infinity) {
     this.capacity = capacity;
@@ -28,6 +40,18 @@ export class DefaultQueue<T> implements Queue<T> {
    * @returns true if the item was successfully enqueued, false if the queue is full
    */
   maybeEnqueue(item: T): boolean {
+    // Zero-capacity queue: only succeed if there's a waiting dequeuer
+    if (this.capacity === 0) {
+      if (this.waitingDequeue.size > 0) {
+        const next = this.waitingDequeue.values().next().value;
+        next!.resolve(item);
+        this.waitingDequeue.delete(next!);
+        return true;
+      }
+      return false;
+    }
+
+    // Regular capacity queue
     if (this.items.length >= this.capacity) {
       return false;
     }
@@ -47,11 +71,24 @@ export class DefaultQueue<T> implements Queue<T> {
 
   /**
    * Attempts to dequeue an item without waiting.
-   * @returns Tuple of [item, true] if successful, [void, false] if queue is empty
+   * @returns Tuple of [item, true] if successful, [undefined, false] if queue is empty
    */
-  maybeDequeue(): [T, true] | [void, false] {
+  maybeDequeue(): [T, true] | [undefined, false] {
+    // Zero-capacity queue: only succeed if there's a waiting enqueuer
+    if (this.capacity === 0) {
+      if (this.waitingEnqueue.size > 0) {
+        const next = this.waitingEnqueue.values().next().value;
+        const item = next!.item;
+        next!.resolve();
+        this.waitingEnqueue.delete(next!);
+        return [item, true];
+      }
+      return [undefined, false];
+    }
+
+    // Regular capacity queue
     if (this.items.length === 0) {
-      return [void 0, false];
+      return [undefined, false];
     }
 
     const item = this.items.shift()!;
@@ -69,6 +106,7 @@ export class DefaultQueue<T> implements Queue<T> {
 
   /**
    * Enqueues an item. If the queue is full, waits until space becomes available.
+   * For zero-capacity queues, waits until a dequeuer becomes available.
    * @param item - The item to enqueue
    * @param options - Optional configuration including AbortSignal
    * @throws {DOMException} If the operation is aborted via AbortSignal
@@ -77,6 +115,7 @@ export class DefaultQueue<T> implements Queue<T> {
     const signal = options?.signal;
     signal?.throwIfAborted();
 
+    // Try immediate handoff first (works for both zero-capacity and regular queues)
     if (this.maybeEnqueue(item)) {
       return;
     }
@@ -106,6 +145,7 @@ export class DefaultQueue<T> implements Queue<T> {
 
   /**
    * Dequeues an item. If the queue is empty, waits until an item becomes available.
+   * For zero-capacity queues, waits until an enqueuer becomes available.
    * @param options - Optional configuration including AbortSignal
    * @returns Promise that resolves to the dequeued item
    * @throws {DOMException} If the operation is aborted via AbortSignal
@@ -114,6 +154,7 @@ export class DefaultQueue<T> implements Queue<T> {
     const signal = options?.signal;
     signal?.throwIfAborted();
 
+    // Try immediate handoff first (works for both zero-capacity and regular queues)
     const maybeResult = this.maybeDequeue();
     if (maybeResult[1]) {
       return maybeResult[0];
@@ -144,10 +185,11 @@ export class DefaultQueue<T> implements Queue<T> {
 
   /**
    * Returns the current number of items in the queue.
+   * For zero-capacity queues, always returns 0.
    * @returns The number of items currently in the queue
    */
-  size(): number {
-    return this.items.length;
+  get size(): number {
+    return this.capacity === 0 ? 0 : this.items.length;
   }
 }
 
