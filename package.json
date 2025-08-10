@@ -35,6 +35,14 @@
   ],
   "author": "jeeyoungk",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jeeyoungk/crnt.git"
+  },
+  "homepage": "https://github.com/jeeyoungk/crnt",
+  "bugs": {
+    "url": "https://github.com/jeeyoungk/crnt/issues"
+  },
   "devDependencies": {
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
