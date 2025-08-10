@@ -122,7 +122,7 @@ export interface BatchConfig extends MapConfig {
 /**
  * Default configuration options that can be applied to all stream operations.
  */
-export interface DefaultConfig extends MapConfig, BatchConfig, AbortOptions {}
+export interface StreamConfig extends MapConfig, BatchConfig, AbortOptions {}
 
 /**
  * Stream is an abstraction over AsyncIterable that supports concurrent processing with batching.
@@ -132,7 +132,7 @@ export interface DefaultConfig extends MapConfig, BatchConfig, AbortOptions {}
 export interface Stream<T>
   extends AsyncIterable<T>,
     PromiseLike<T[]>,
-    DefaultConfig {
+    StreamConfig {
   /**
    * Maps a function over each item in the stream with controlled concurrency.
    *
@@ -191,22 +191,23 @@ export interface Stream<T>
   ): Stream<U>;
 }
 
+/** Create a new instance of stream. */
 export function newStream<T>(
   iterable: AsyncIterable<T>,
-  config: DefaultConfig = {}
+  config: StreamConfig = {}
 ): Stream<T> {
   return new DefaultStream(iterable, config);
 }
 
 class DefaultStream<T> implements Stream<T> {
   private readonly iterable: AsyncIterable<T>;
-  private readonly config: DefaultConfig;
+  private readonly config: StreamConfig;
 
   concurrency?: number;
   batchSize?: number;
   signal?: AbortSignal;
 
-  constructor(iterable: AsyncIterable<T>, config: DefaultConfig = {}) {
+  constructor(iterable: AsyncIterable<T>, config: StreamConfig = {}) {
     this.iterable = iterable;
     this.config = config;
     this.concurrency = config.concurrency;
@@ -400,7 +401,7 @@ class DefaultStream<T> implements Stream<T> {
  */
 export function fromAsyncIterable<T>(
   iterable: AsyncIterable<T>,
-  config?: DefaultConfig
+  config?: StreamConfig
 ): DefaultStream<T> {
   return new DefaultStream<T>(iterable, config);
 }
@@ -433,7 +434,7 @@ export function fromAsyncIterable<T>(
  */
 export function fromIterable<T>(
   iterable: Iterable<T>,
-  config?: DefaultConfig
+  config?: StreamConfig
 ): DefaultStream<T> {
   return new DefaultStream<T>(toAsyncIterable(iterable), config);
 }
