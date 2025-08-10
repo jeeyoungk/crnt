@@ -1,3 +1,10 @@
+## [0.0.5](https://github.com/jeeyoungk/crnt/compare/v0.0.4...v0.0.5) (2025-08-10)
+
+
+### Bug Fixes
+
+* trigger release ([3ca6f95](https://github.com/jeeyoungk/crnt/commit/3ca6f953131d3a3836d9a4b758b8467bd6c96e12))
+
 ## [0.0.4](https://github.com/jeeyoungk/crnt/compare/v0.0.3...v0.0.4) (2025-08-10)
 
 
