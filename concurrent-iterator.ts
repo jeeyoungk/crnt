@@ -129,10 +129,7 @@ export interface StreamConfig extends MapConfig, BatchConfig, AbortOptions {}
  *
  * @template T - The type of items in the stream
  */
-export interface Stream<T>
-  extends AsyncIterable<T>,
-    PromiseLike<T[]>,
-    StreamConfig {
+export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
   /**
    * Maps a function over each item in the stream with controlled concurrency.
    *
