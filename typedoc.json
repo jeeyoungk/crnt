@@ -18,10 +18,5 @@
     "invalidLink": true,
     "notDocumented": false
   },
-  "compilerOptions": {
-    "target": "ESNext",
-    "module": "ESNext",
-    "lib": ["ESNext"],
-    "strict": true
-  }
+  "tsconfig": "tsconfig.json"
 }
