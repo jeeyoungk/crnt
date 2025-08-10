@@ -1,3 +1,10 @@
+## [0.0.6](https://github.com/jeeyoungk/crnt/compare/v0.0.5...v0.0.6) (2025-08-10)
+
+
+### Bug Fixes
+
+* repo info ([102e3d1](https://github.com/jeeyoungk/crnt/commit/102e3d1661b781a8ca4baeafe4e37867d5f37a84))
+
 ## [0.0.5](https://github.com/jeeyoungk/crnt/compare/v0.0.4...v0.0.5) (2025-08-10)
 
 
