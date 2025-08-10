@@ -1,6 +1,5 @@
 {
   "name": "crnt",
-  "version": "0.0.20250809",
   "description": "TypeScript library for async concurrency primitives",
   "type": "module",
   "main": "./dist/index.js",
@@ -25,7 +24,8 @@
     "lint:fix": "eslint . --fix --cache",
     "format": "prettier --write . --cache",
     "format:check": "prettier --check . --cache",
-    "check": "bun run lint && bun run format:check && bun run typecheck"
+    "check": "bun run lint && bun run format:check && bun run typecheck",
+    "semantic-release": "semantic-release"
   },
   "keywords": [
     "async",
@@ -36,6 +36,8 @@
   "author": "jeeyoungk",
   "license": "MIT",
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/git": "^10.0.1",
     "@types/bun": "latest",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
@@ -43,6 +45,7 @@
     "eslint-config-prettier": "^10.1.8",
     "globals": "^16.3.0",
     "prettier": "^3.6.2",
+    "semantic-release": "^24.2.7",
     "tsup": "^8.5.0"
   },
   "peerDependencies": {
@@ -50,5 +53,8 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "publishConfig": {
+    "provenance": true
   }
 }
