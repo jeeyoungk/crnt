@@ -1,3 +1,10 @@
+## [0.0.8](https://github.com/jeeyoungk/crnt/compare/v0.0.7...v0.0.8) (2025-08-10)
+
+
+### Bug Fixes
+
+* cannot get this working ([2c6c063](https://github.com/jeeyoungk/crnt/commit/2c6c063b0b8d0d9e2e8c219ea47af275a23dac66))
+
 ## [0.0.7](https://github.com/jeeyoungk/crnt/compare/v0.0.6...v0.0.7) (2025-08-10)
 
 
