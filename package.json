@@ -56,5 +56,6 @@
   },
   "publishConfig": {
     "provenance": true
-  }
+  },
+  "version": "0.0.3"
 }
