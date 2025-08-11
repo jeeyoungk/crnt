@@ -3,6 +3,7 @@ import tseslint from '@typescript-eslint/eslint-plugin';
 import tsparser from '@typescript-eslint/parser';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import jsonSchemaValidator from 'eslint-plugin-json-schema-validator';
 
 export default [
   {
@@ -33,5 +34,6 @@ export default [
       '@typescript-eslint/explicit-function-return-type': 'off',
     },
   },
+  ...jsonSchemaValidator.configs['flat/recommended'],
   prettier,
 ];

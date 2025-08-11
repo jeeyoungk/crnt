@@ -9,7 +9,7 @@
   "categorizeByGroup": true,
   "sort": ["source-order"],
   "readme": "README.md",
-  "exclude": ["**/*.test.ts", "node_modules/**/*"],
+  "exclude": ["**/*.test.ts", "node_modules/*", "docs/*", "dist/*"],
   "excludeExternals": true,
   "excludePrivate": true,
   "excludeProtected": true,
@@ -18,5 +18,6 @@
     "invalidLink": true,
     "notDocumented": false
   },
-  "tsconfig": "tsconfig.json"
+  "tsconfig": "tsconfig.json",
+  "$schema": "https://typedoc.org/schema.json"
 }
