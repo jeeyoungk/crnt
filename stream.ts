@@ -97,6 +97,17 @@ export interface MapConfig {
    * @default 1
    */
   concurrency?: number;
+
+  /**
+   * Whether to preserve the order of results.
+   *
+   * When `true`, results are yielded in the same order as the input items,
+   * which may reduce throughput as processing waits for earlier items to complete.
+   * When `false`, results are yielded as soon as they're available.
+   *
+   * @default false
+   */
+  preserveOrder?: boolean;
 }
 
 /**
@@ -124,7 +135,7 @@ export interface BatchConfig extends MapConfig {
 export interface StreamConfig extends MapConfig, BatchConfig, Options {}
 
 /**
- * Stream is an abstraction over AsyncIterable that supports concurrent processing with batching.
+ * Stream is an abstraction over {@link AsyncIterable} that supports concurrent processing with batching.
  *
  * @template T - The type of items in the stream
  */
@@ -232,6 +243,7 @@ export class DefaultStream<T> implements Stream<T> {
     const concurrency = config?.concurrency ?? this.concurrency ?? 1;
     const batchSize = config?.batchSize ?? this.batchSize ?? 1;
     const batchDelay = config?.batchDelay;
+    const preserveOrder = config?.preserveOrder ?? false;
     const signal = this.signal;
 
     async function* mapBatchIterable(source: AsyncIterable<T>) {
@@ -304,7 +316,17 @@ export class DefaultStream<T> implements Stream<T> {
             racePromises.push(pendingNext);
           }
           if (hasPendingBatches()) {
-            racePromises.push(...pendingBatches.values());
+            if (preserveOrder) {
+              // When preserving order, only wait for the first promise
+              const firstPromiseId = Math.min(...pendingBatches.keys());
+              const firstPromise = pendingBatches.get(firstPromiseId);
+              if (firstPromise) {
+                racePromises.push(firstPromise);
+              }
+            } else {
+              // When not preserving order, race all pending batches
+              racePromises.push(...pendingBatches.values());
+            }
           }
           if (timeoutPromise) {
             racePromises.push(timeoutPromise);

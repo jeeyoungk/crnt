@@ -327,6 +327,173 @@ describe('Stream', () => {
     });
   });
 
+  describe('preserveOrder', () => {
+    test('map preserves order when preserveOrder=true', async () => {
+      const stream = fromIterable([1, 2, 3, 4, 5]);
+
+      // Use variable delays to make items complete out of order naturally
+      const results = await stream.map(
+        async x => {
+          // Item 1 takes longest, item 5 takes shortest
+          const delay = (6 - x) * 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return x * 10;
+        },
+        { concurrency: 5, preserveOrder: true }
+      );
+
+      // Results should be in original order despite processing times
+      expect(results).toEqual([10, 20, 30, 40, 50]);
+    });
+
+    test('map does not preserve order when preserveOrder=false', async () => {
+      // Simple test with only 2 items and extreme delay difference
+      const unorderedResults = await fromIterable([1, 2]).map(
+        async x => {
+          // First item takes much longer than second
+          const delay = x === 1 ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return x;
+        },
+        { concurrency: 2, preserveOrder: false }
+      );
+
+      // With preserveOrder=false, second item should finish first
+      expect(unorderedResults).toEqual([2, 1]);
+
+      const orderedResults = await fromIterable([1, 2]).map(
+        async x => {
+          // Same delays
+          const delay = x === 1 ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return x;
+        },
+        { concurrency: 2, preserveOrder: true }
+      );
+
+      // With preserveOrder=true, should maintain original order
+      expect(orderedResults).toEqual([1, 2]);
+    });
+
+    test('mapBatch preserves order when preserveOrder=true', async () => {
+      const stream = fromIterable([1, 2, 3, 4, 5, 6]);
+
+      const results = await stream.mapBatch(
+        async batch => {
+          // First batch takes longer than second batch
+          const delay = batch.includes(1) ? 50 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return batch.map(x => x * 10);
+        },
+        { batchSize: 3, concurrency: 2, preserveOrder: true }
+      );
+
+      // Results should be in original order despite processing times
+      expect(results).toEqual([10, 20, 30, 40, 50, 60]);
+    });
+
+    test('mapBatch does not preserve order when preserveOrder=false', async () => {
+      const unorderedResults = await fromIterable([1, 2, 3, 4]).mapBatch(
+        async batch => {
+          // First batch [1,2] takes longer, second batch [3,4] is faster
+          const delay = batch.includes(1) ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return batch;
+        },
+        { batchSize: 2, concurrency: 2, preserveOrder: false }
+      );
+
+      // With preserveOrder=false, second batch should complete first
+      expect(unorderedResults).toEqual([3, 4, 1, 2]);
+
+      const orderedResults = await fromIterable([1, 2, 3, 4]).mapBatch(
+        async batch => {
+          // Same delays
+          const delay = batch.includes(1) ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return batch;
+        },
+        { batchSize: 2, concurrency: 2, preserveOrder: true }
+      );
+
+      // With preserveOrder=true, should maintain original order
+      expect(orderedResults).toEqual([1, 2, 3, 4]);
+    });
+
+    test('preserveOrder defaults to false', async () => {
+      // Test with simple 2-item case
+      const defaultResults = await fromIterable([1, 2]).map(
+        async x => {
+          const delay = x === 1 ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return x;
+        },
+        { concurrency: 2 } // No preserveOrder specified
+      );
+
+      // Default should behave like preserveOrder=false
+      expect(defaultResults).toEqual([2, 1]);
+
+      const explicitFalseResults = await fromIterable([1, 2]).map(
+        async x => {
+          const delay = x === 1 ? 200 : 10;
+          await new Promise(resolve => setTimeout(resolve, delay));
+          return x;
+        },
+        { concurrency: 2, preserveOrder: false }
+      );
+
+      // Both should behave the same way
+      expect(defaultResults).toEqual(explicitFalseResults);
+    });
+
+    test('preserveOrder works with chained operations', async () => {
+      const stream = fromIterable([1, 2, 3, 4]);
+
+      const results = await stream
+        .map(
+          async x => {
+            const delay = (5 - x) * 10;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x * 2;
+          },
+          { concurrency: 4, preserveOrder: true }
+        )
+        .mapBatch(
+          async batch => {
+            return batch.map(x => x + 1);
+          },
+          { batchSize: 2, preserveOrder: true }
+        );
+
+      expect(results).toEqual([3, 5, 7, 9]);
+    });
+
+    test('preserveOrder with single item processes correctly', async () => {
+      const stream = fromIterable([42]);
+
+      const results = await stream.map(
+        async x => {
+          await new Promise(resolve => setTimeout(resolve, 10));
+          return x * 2;
+        },
+        { preserveOrder: true }
+      );
+
+      expect(results).toEqual([84]);
+    });
+
+    test('preserveOrder with empty stream', async () => {
+      const stream = fromIterable([]);
+
+      const results = await stream.map(async x => x * 2, {
+        preserveOrder: true,
+      });
+
+      expect(results).toEqual([]);
+    });
+  });
+
   describe('edge cases', () => {
     test('handles very large concurrency', async () => {
       const stream = fromIterable([1, 2, 3]);
