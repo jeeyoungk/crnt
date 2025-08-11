@@ -63,16 +63,44 @@ jobs:
       - name: Build package
         run: bun run tsup
       - name: Release and Publish
-        run: bun run semantic-release
+        id: semantic_release
+        run: |
+          # Store git HEAD before semantic-release
+          BEFORE_SHA=$(git rev-parse HEAD)
+          echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
+
+          # Run semantic-release
+          bun run semantic-release
+
+          # Check if semantic-release created a new commit (indicating a release)
+          AFTER_SHA=$(git rev-parse HEAD)
+          if [ "$BEFORE_SHA" != "$AFTER_SHA" ]; then
+            echo "new_release=true" >> $GITHUB_OUTPUT
+            echo "latest_tag=$(git describe --tags --abbrev=0)" >> $GITHUB_OUTPUT
+          else
+            echo "new_release=false" >> $GITHUB_OUTPUT
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Create GitHub Release
+        if: steps.semantic_release.outputs.new_release == 'true'
+        run: |
+          LATEST_TAG="${{ steps.semantic_release.outputs.latest_tag }}"
+          VERSION=${LATEST_TAG#v}
+          gh release create "$LATEST_TAG" \
+            --title "Release $VERSION" \
+            --notes "See [CHANGELOG](./CHANGELOG.md) for details." \
+            --generate-notes
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       # This one needs to be after release, as release changes the version number.
       - name: Generate documentation
+        if: steps.semantic_release.outputs.new_release == 'true'
         run: bun run docs
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
-        if: success()
+        if: steps.semantic_release.outputs.new_release == 'true'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs
