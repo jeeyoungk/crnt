@@ -4,11 +4,12 @@ export { type Options, CrntError } from './common';
 export {
   fromAsyncIterable,
   fromIterable,
-  toBufferedAsyncIterable,
   type Stream,
   type StreamConfig,
   type MapConfig,
   type BatchConfig,
   newStream,
-} from './concurrent-iterator';
+  DefaultStream,
+} from './stream';
+export { toBufferedAsyncIterable } from './concurrent-iterator';
 export { abortSignalPromise, raceWithAbort, sleep } from './abort';
