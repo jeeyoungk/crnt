@@ -43,3 +43,30 @@ export function _makeAbortSignal(
   );
   return AbortSignal.any([controller.signal, signal]);
 }
+
+/**
+ * Create a function that checks whether a given promise is resolved or not.
+ *
+ * Note: the returned function is synchronous, and within the same microtask boundary, it's guaranteed to return the same value.
+ */
+export async function isResolvedChecker(
+  promise: Promise<unknown>
+): Promise<() => boolean> {
+  let resolved = false;
+  promise.then(
+    () => (resolved = true),
+    () => (resolved = true)
+  );
+  await Promise.resolve();
+  return () => resolved;
+}
+
+/**
+ * Check whether a promise is resolved or not.
+ *
+ * Note: if this is repeatedly called over a long-running (or even potentially forever-running) promise,
+ * it's recommended to use {@link isResolvedChecker} instead.
+ */
+export async function isResolved(promise: Promise<unknown>): Promise<boolean> {
+  return (await isResolvedChecker(promise))();
+}

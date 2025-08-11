@@ -1,6 +1,11 @@
 export { type Semaphore, newSemaphore } from './semaphore';
 export { type Queue, newQueue } from './queue';
-export { type Options, CrntError } from './common';
+export {
+  type Options,
+  CrntError,
+  isResolvedChecker,
+  isResolved,
+} from './common';
 export {
   fromAsyncIterable,
   fromIterable,
