@@ -1,3 +1,10 @@
+## [0.0.11](https://github.com/jeeyoungk/crnt/compare/v0.0.10...v0.0.11) (2025-08-11)
+
+
+### Features
+
+* add preserveOrder option to MapConfig and BatchConfig ([683878f](https://github.com/jeeyoungk/crnt/commit/683878f4e70be025be26db613c4e80d846d40fda))
+
 ## [0.0.10](https://github.com/jeeyoungk/crnt/compare/v0.0.9...v0.0.10) (2025-08-11)
 
 
