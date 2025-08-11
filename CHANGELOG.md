@@ -1,3 +1,10 @@
+## [0.0.14](https://github.com/jeeyoungk/crnt/compare/v0.0.13...v0.0.14) (2025-08-11)
+
+
+### Features
+
+* export isResolvedChecker and isResolved utilities with comprehensive tests ([97b471a](https://github.com/jeeyoungk/crnt/commit/97b471ac56e1d04ee3eedaf16559922eb9491b2d))
+
 ## [0.0.13](https://github.com/jeeyoungk/crnt/compare/v0.0.12...v0.0.13) (2025-08-11)
 
 
