@@ -62,13 +62,14 @@ jobs:
         run: bun install
       - name: Build package
         run: bun run tsup
-      - name: Generate documentation
-        run: bun run docs
       - name: Release and Publish
         run: bun run semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # This one needs to be after release, as release changes the version number.
+      - name: Generate documentation
+        run: bun run docs
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         if: success()
