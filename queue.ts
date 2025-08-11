@@ -25,20 +25,10 @@ export class DefaultQueue<T> implements Queue<T> {
   private readonly waitingEnqueue: Set<EnqueueWaitingEntry<T>> = new Set();
   private readonly waitingDequeue: Set<DequeueWaitingEntry<T>> = new Set();
 
-  /**
-   * Creates a new Queue with the specified capacity.
-   * @param capacity - Maximum number of items the queue can hold.
-   *                   Use 0 for a zero-capacity queue (rendezvous point)
-   */
   constructor(capacity: number = Infinity) {
     this.capacity = capacity;
   }
 
-  /**
-   * Attempts to enqueue an item without waiting.
-   * @param item - The item to enqueue
-   * @returns true if the item was successfully enqueued, false if the queue is full
-   */
   maybeEnqueue(item: T): boolean {
     // Zero-capacity queue: only succeed if there's a waiting dequeuer
     if (this.capacity === 0) {
@@ -69,10 +59,6 @@ export class DefaultQueue<T> implements Queue<T> {
     return true;
   }
 
-  /**
-   * Attempts to dequeue an item without waiting.
-   * @returns Tuple of [item, true] if successful, [undefined, false] if queue is empty
-   */
   maybeDequeue(): [T, true] | [undefined, false] {
     // Zero-capacity queue: only succeed if there's a waiting enqueuer
     if (this.capacity === 0) {
@@ -104,13 +90,6 @@ export class DefaultQueue<T> implements Queue<T> {
     return [item, true];
   }
 
-  /**
-   * Enqueues an item. If the queue is full, waits until space becomes available.
-   * For zero-capacity queues, waits until a dequeuer becomes available.
-   * @param item - The item to enqueue
-   * @param options - Optional configuration including AbortSignal
-   * @throws {DOMException} If the operation is aborted via AbortSignal
-   */
   async enqueue(item: T, options?: Options): Promise<void> {
     const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
@@ -143,13 +122,6 @@ export class DefaultQueue<T> implements Queue<T> {
     return promise;
   }
 
-  /**
-   * Dequeues an item. If the queue is empty, waits until an item becomes available.
-   * For zero-capacity queues, waits until an enqueuer becomes available.
-   * @param options - Optional configuration including AbortSignal
-   * @returns Promise that resolves to the dequeued item
-   * @throws {DOMException} If the operation is aborted via AbortSignal
-   */
   async dequeue(options?: Options): Promise<T> {
     const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
@@ -183,11 +155,6 @@ export class DefaultQueue<T> implements Queue<T> {
     return promise;
   }
 
-  /**
-   * Returns the current number of items in the queue.
-   * For zero-capacity queues, always returns 0.
-   * @returns The number of items currently in the queue
-   */
   get size(): number {
     return this.capacity === 0 ? 0 : this.items.length;
   }
