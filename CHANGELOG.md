@@ -1,3 +1,10 @@
+## [0.0.13](https://github.com/jeeyoungk/crnt/compare/v0.0.12...v0.0.13) (2025-08-11)
+
+
+### Features
+
+* add automated GitHub releases using semantic-release/github ([de8b2c9](https://github.com/jeeyoungk/crnt/commit/de8b2c9c53440d21d998a53883032dea193ef6ab))
+
 ## [0.0.12](https://github.com/jeeyoungk/crnt/compare/v0.0.11...v0.0.12) (2025-08-11)
 
 
