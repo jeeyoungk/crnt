@@ -1,3 +1,10 @@
+## [0.0.10](https://github.com/jeeyoungk/crnt/compare/v0.0.9...v0.0.10) (2025-08-11)
+
+
+### Bug Fixes
+
+* module paths for package.json ([4b44419](https://github.com/jeeyoungk/crnt/commit/4b444191af7929f19f66f20ef70b5b49e459a293))
+
 ## [0.0.9](https://github.com/jeeyoungk/crnt/compare/v0.0.8...v0.0.9) (2025-08-10)
 
 
