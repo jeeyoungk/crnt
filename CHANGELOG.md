@@ -1,3 +1,10 @@
+## [0.0.17](https://github.com/jeeyoungk/crnt/compare/v0.0.16...v0.0.17) (2025-08-12)
+
+
+### Bug Fixes
+
+* Semaphore to interface (again) ([2fd4844](https://github.com/jeeyoungk/crnt/commit/2fd484498db67201843f7e9b89fa9731a491b0ca))
+
 ## [0.0.16](https://github.com/jeeyoungk/crnt/compare/v0.0.15...v0.0.16) (2025-08-12)
 
 
