@@ -9,6 +9,16 @@ export class CrntError extends Error {
 }
 
 /**
+ * Error thrown when attempting to enqueue to a closed queue
+ */
+export class QueueClosedError extends CrntError {
+  constructor(message: string = 'Queue is closed', options?: ErrorOptions) {
+    super(message, options);
+    this.name = 'QueueClosedError';
+  }
+}
+
+/**
  * Common options for crnt operations. This controls the timeout and cancellation behavior of a given function.
  *
  * @category Common
@@ -27,9 +37,7 @@ export function _makeAbortSignal(
     return undefined;
   }
   const { signal, timeout } = options;
-  if (timeout == null && signal == null) {
-    return undefined;
-  } else if (timeout == null) {
+  if (timeout == null) {
     return signal;
   }
   const controller = new AbortController();

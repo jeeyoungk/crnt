@@ -1,10 +1,10 @@
-import { _makeAbortSignal, type Options } from './common';
+import { _makeAbortSignal, type Options, QueueClosedError } from './common';
 
 /**
  * @category Data Structure
  * @summary Concurrent queue data structure.
  */
-export interface Queue<T> {
+export interface Queue<T> extends AsyncIterable<T> {
   /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
   enqueue(item: T, options?: Options): Promise<void>;
   /** asynchronously dequeue an item, waiting until an item becomes available, or throw if aborted */
@@ -13,12 +13,16 @@ export interface Queue<T> {
   maybeEnqueue(item: T): boolean;
   /** synchronously dequeue an item if there is one, or return false */
   maybeDequeue(): [T, true] | [undefined, false];
+  /** Returns the copy of the current items in the queue, in the first-in-first-out (FIFO) order. */
+  toArray(): T[];
+  /** close the queue, preventing further enqueue operations but allowing dequeue until exhausted */
+  close(): void;
   /** the number of items in the queue */
   readonly size: number;
   /** the maximum number of items the queue can hold */
   readonly capacity: number;
-  /** Returns the copy of the current items in the queue, in the first-in-first-out (FIFO) order. */
-  toArray(): T[];
+  /** whether the queue is closed */
+  readonly closed: boolean;
 }
 
 /**
@@ -40,6 +44,7 @@ export class DefaultQueue<T> implements Queue<T> {
   #capacity: number;
   #waitingEnqueue: Set<EnqueueWaitingEntry<T>> = new Set();
   #waitingDequeue: Set<DequeueWaitingEntry<T>> = new Set();
+  #closed: boolean = false;
 
   constructor(capacity: number = Infinity) {
     this.#capacity = capacity;
@@ -86,6 +91,10 @@ export class DefaultQueue<T> implements Queue<T> {
   }
 
   maybeEnqueue(item: T): boolean {
+    if (this.#closed) {
+      return false;
+    }
+
     // Zero-capacity queue: only succeed if there's a waiting dequeuer
     if (this.#capacity === 0) {
       if (this.#waitingDequeue.size > 0) {
@@ -146,17 +155,24 @@ export class DefaultQueue<T> implements Queue<T> {
     return [item, true];
   }
 
-  async enqueue(item: T, options?: Options): Promise<void> {
+  /**
+   * note: this method (and {@link dequeue}) is implemented without "async" to ensure that task scheduling does not occur.
+   */
+  enqueue(item: T, options?: Options): Promise<void> {
     const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
 
+    if (this.#closed) {
+      throw new QueueClosedError();
+    }
+
     // Try immediate handoff first (works for both zero-capacity and regular queues)
     if (this.maybeEnqueue(item)) {
-      return;
+      return Promise.resolve();
     }
 
     const { promise, resolve, reject } = Promise.withResolvers<void>();
-    const waitingEntry: EnqueueWaitingEntry<T> = { resolve, item };
+    const waitingEntry: EnqueueWaitingEntry<T> = { resolve, reject, item };
     this.#waitingEnqueue.add(waitingEntry);
 
     if (signal) {
@@ -171,18 +187,23 @@ export class DefaultQueue<T> implements Queue<T> {
     return promise;
   }
 
-  async dequeue(options?: Options): Promise<T> {
+  dequeue(options?: Options): Promise<T> {
     const signal = _makeAbortSignal(options);
     signal?.throwIfAborted();
 
     // Try immediate handoff first (works for both zero-capacity and regular queues)
     const maybeResult = this.maybeDequeue();
     if (maybeResult[1]) {
-      return maybeResult[0];
+      return Promise.resolve(maybeResult[0]!);
+    }
+
+    // If queue is closed and empty, throw QueueClosedError
+    if (this.#closed && this.#size === 0 && this.#waitingEnqueue.size === 0) {
+      throw new QueueClosedError('Queue is closed and empty');
     }
 
     const { promise, resolve, reject } = Promise.withResolvers<T>();
-    const waitingEntry: DequeueWaitingEntry<T> = { resolve };
+    const waitingEntry: DequeueWaitingEntry<T> = { resolve, reject };
     this.#waitingDequeue.add(waitingEntry);
 
     if (signal) {
@@ -216,15 +237,58 @@ export class DefaultQueue<T> implements Queue<T> {
     }
     return result;
   }
+
+  close(): void {
+    if (this.#closed) {
+      return;
+    }
+    this.#closed = true;
+
+    // Reject all waiting enqueue operations
+    for (const entry of this.#waitingEnqueue) {
+      entry.reject(new QueueClosedError());
+    }
+    this.#waitingEnqueue.clear();
+
+    // If queue is empty, reject all waiting dequeue operations
+    if (this.#size === 0) {
+      for (const entry of this.#waitingDequeue) {
+        entry.reject(new QueueClosedError('Queue is closed and empty'));
+      }
+      this.#waitingDequeue.clear();
+    }
+  }
+
+  get closed(): boolean {
+    return this.#closed;
+  }
+
+  async *[Symbol.asyncIterator](): AsyncIterator<T> {
+    const ctrl = new AbortController();
+    try {
+      while (true) {
+        yield await this.dequeue({ signal: ctrl.signal });
+      }
+    } catch (error) {
+      if (error instanceof QueueClosedError) {
+        return;
+      }
+      throw error;
+    } finally {
+      ctrl.abort();
+    }
+  }
 }
 
 interface EnqueueWaitingEntry<T> {
   resolve: () => void;
+  reject: (reason?: unknown) => void;
   item: T;
 }
 
 interface DequeueWaitingEntry<T> {
   resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
 }
 
 function _addSignalListener<T>(
