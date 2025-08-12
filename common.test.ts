@@ -1,9 +1,10 @@
-import { test, expect, describe } from 'bun:test';
+import { test, expect, describe, afterEach } from 'bun:test';
 import {
   _makeAbortSignal,
   type Options,
   isResolvedChecker,
   isResolved,
+  promiseMapInternal,
 } from './common';
 
 describe('common', () => {
@@ -162,22 +163,29 @@ describe('common', () => {
   });
 
   describe('isResolvedChecker', () => {
+    afterEach(() => {
+      promiseMapInternal.clear();
+    });
+
     test('returns false for unresolved promise', async () => {
       const promise = new Promise(() => {}); // Never resolves
       const checker = await isResolvedChecker(promise);
       expect(checker()).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
     });
 
     test('returns true for already resolved promise', async () => {
       const promise = Promise.resolve('success');
       const checker = await isResolvedChecker(promise);
       expect(checker()).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns true for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
       const checker = await isResolvedChecker(promise);
       expect(checker()).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns true after promise resolves', async () => {
@@ -188,11 +196,13 @@ describe('common', () => {
       const checker = await isResolvedChecker(promise);
 
       expect(checker()).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
 
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
       expect(checker()).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns true after promise rejects', async () => {
@@ -203,11 +213,13 @@ describe('common', () => {
       const checker = await isResolvedChecker(promise);
 
       expect(checker()).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
 
       reject!(new Error('failed'));
       await Promise.resolve(); // Let promise reject
 
       expect(checker()).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('checker function can be called multiple times', async () => {
@@ -226,25 +238,49 @@ describe('common', () => {
       expect(checker()).toBe(true);
       expect(checker()).toBe(true);
     });
+
+    test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
+      expect(promiseMapInternal.size).toBe(0);
+      
+      // Test with unresolved promises
+      const unresolvedPromise1 = new Promise(() => {});
+      const unresolvedPromise2 = new Promise(() => {});
+      
+      await isResolvedChecker(unresolvedPromise1);
+      await isResolvedChecker(unresolvedPromise2);
+      expect(promiseMapInternal.size).toBe(2);
+      
+      // Test with resolved promise - should be automatically cleaned up
+      const resolvedPromise = Promise.resolve('test');
+      await isResolvedChecker(resolvedPromise);
+      expect(promiseMapInternal.size).toBe(2); // Still only the 2 unresolved ones
+    });
   });
 
   describe('isResolved', () => {
+    afterEach(() => {
+      promiseMapInternal.clear();
+    });
+
     test('returns false for unresolved promise', async () => {
       const promise = new Promise(() => {}); // Never resolves
       const result = await isResolved(promise);
       expect(result).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
     });
 
     test('returns true for already resolved promise', async () => {
       const promise = Promise.resolve('success');
       const result = await isResolved(promise);
       expect(result).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns true for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
       const result = await isResolved(promise);
       expect(result).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns false then true as promise resolves', async () => {
@@ -254,11 +290,13 @@ describe('common', () => {
       });
 
       expect(await isResolved(promise)).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
 
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
       expect(await isResolved(promise)).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('returns false then true as promise rejects', async () => {
@@ -268,11 +306,13 @@ describe('common', () => {
       });
 
       expect(await isResolved(promise)).toBe(false);
+      expect(promiseMapInternal.size).toBe(1);
 
       reject!(new Error('failed'));
       await Promise.resolve(); // Let promise reject
 
       expect(await isResolved(promise)).toBe(true);
+      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
     test('works with different promise types', async () => {
@@ -287,6 +327,23 @@ describe('common', () => {
       expect(await isResolved(objectPromise)).toBe(true);
       expect(await isResolved(nullPromise)).toBe(true);
       expect(await isResolved(undefinedPromise)).toBe(true);
+    });
+
+    test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
+      expect(promiseMapInternal.size).toBe(0);
+      
+      // Test with unresolved promises
+      const unresolvedPromise1 = new Promise(() => {});
+      const unresolvedPromise2 = new Promise(() => {});
+      
+      await isResolved(unresolvedPromise1);
+      await isResolved(unresolvedPromise2);
+      expect(promiseMapInternal.size).toBe(2);
+      
+      // Test with resolved promise - should be automatically cleaned up
+      const resolvedPromise = Promise.resolve('test');
+      await isResolved(resolvedPromise);
+      expect(promiseMapInternal.size).toBe(2); // Still only the 2 unresolved ones
     });
   });
 });

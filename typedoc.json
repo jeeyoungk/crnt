@@ -1,4 +1,5 @@
 {
+  "$schema": "https://typedoc.org/schema.json",
   "entryPoints": ["index.ts"],
   "out": "docs",
   "name": "crnt",
@@ -6,9 +7,11 @@
   "hideGenerator": true,
   "includeVersion": true,
   "searchInComments": true,
-  "categorizeByGroup": true,
-  "sort": ["source-order"],
+  "categorizeByGroup": false,
+  "sort": ["kind", "instance-first", "alphabetical-ignoring-documents"],
   "readme": "README.md",
+  "projectDocuments": ["README.md"],
+  "alwaysCreateEntryPointModule": false,
   "exclude": ["**/*.test.ts", "node_modules/*", "docs/*", "dist/*"],
   "excludeExternals": true,
   "excludePrivate": true,
@@ -18,6 +21,9 @@
     "invalidLink": true,
     "notDocumented": false
   },
-  "tsconfig": "tsconfig.json",
-  "$schema": "https://typedoc.org/schema.json"
+  "navigation": {
+    "includeCategories": true,
+    "includeGroups": true
+  },
+  "tsconfig": "tsconfig.json"
 }

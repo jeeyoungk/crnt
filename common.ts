@@ -1,4 +1,10 @@
 /**
+ * @categoryDescription Common
+ * These functions are available for...
+ * @module
+ */
+
+/**
  * Base error class for all CRNT (Current) library errors
  */
 export class CrntError extends Error {
@@ -8,7 +14,11 @@ export class CrntError extends Error {
   }
 }
 
-/** Common options for many crnt functions. */
+/**
+ * Common options for many crnt functions.
+ *
+ * @category Common
+ */
 export interface Options {
   /** same signature as fetch(), but for aborting operations */
   signal?: AbortSignal;
@@ -52,13 +62,22 @@ export function _makeAbortSignal(
 export async function isResolvedChecker(
   promise: Promise<unknown>
 ): Promise<() => boolean> {
-  let resolved = false;
-  promise.then(
-    () => (resolved = true),
-    () => (resolved = true)
-  );
-  await Promise.resolve();
-  return () => resolved;
+  const existingState = promiseMapInternal.get(promise);
+  if (existingState != null) {
+    return existingState.isResolved;
+  }
+  const state: PromiseState = {
+    resolved: false,
+    isResolved: () => state.resolved,
+  };
+  promiseMapInternal.set(promise, state);
+  const done = () => {
+    state.resolved = true;
+    promiseMapInternal.delete(promise);
+  };
+  promise.then(done, done);
+  await Promise.resolve(); // microtask
+  return state.isResolved;
 }
 
 /**
@@ -70,3 +89,11 @@ export async function isResolvedChecker(
 export async function isResolved(promise: Promise<unknown>): Promise<boolean> {
   return (await isResolvedChecker(promise))();
 }
+
+type PromiseState = {
+  resolved: boolean;
+  isResolved: () => boolean;
+};
+
+/** track the resolved state of the promises. is used to make isResolvedChecker more efficient. */
+export const promiseMapInternal = new Map<Promise<unknown>, PromiseState>();

@@ -39,7 +39,7 @@
     "type": "git",
     "url": "https://github.com/jeeyoungk/crnt.git"
   },
-  "homepage": "https://github.com/jeeyoungk/crnt",
+  "homepage": "https://crnt.jeeyoungk.com",
   "bugs": {
     "url": "https://github.com/jeeyoungk/crnt/issues"
   },
@@ -65,7 +65,7 @@
     "typescript": "^5"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20"
   },
   "publishConfig": {
     "provenance": true

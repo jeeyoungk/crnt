@@ -18,3 +18,4 @@ export {
 } from './stream';
 export { toBufferedAsyncIterable } from './concurrent-iterator';
 export { abortSignalPromise, raceWithAbort, sleep } from './abort';
+export { parallelMap } from './util';

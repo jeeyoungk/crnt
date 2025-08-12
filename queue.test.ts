@@ -493,3 +493,114 @@ test('Zero-capacity queue concurrent producers and consumers rendezvous correctl
   consumed.sort((a, b) => a - b);
   expect(consumed).toEqual(produced);
 });
+
+// Circular queue specific tests
+test('toArray() returns items in correct FIFO order for circular queue', () => {
+  const queue = new DefaultQueue<number>(5);
+
+  // Add some items
+  queue.maybeEnqueue(1);
+  queue.maybeEnqueue(2);
+  queue.maybeEnqueue(3);
+
+  expect(queue.toArray()).toEqual([1, 2, 3]);
+
+  // Dequeue first item
+  const [first] = queue.maybeDequeue();
+  expect(first).toBe(1);
+  expect(queue.toArray()).toEqual([2, 3]);
+
+  // Add more items to test wrap-around
+  queue.maybeEnqueue(4);
+  queue.maybeEnqueue(5);
+  queue.maybeEnqueue(6); // This should wrap around in the circular buffer
+
+  expect(queue.toArray()).toEqual([2, 3, 4, 5, 6]);
+});
+
+test('toArray() handles empty queue correctly', () => {
+  const queue = new DefaultQueue<string>(3);
+  expect(queue.toArray()).toEqual([]);
+
+  queue.maybeEnqueue('a');
+  expect(queue.toArray()).toEqual(['a']);
+
+  queue.maybeDequeue();
+  expect(queue.toArray()).toEqual([]);
+});
+
+test('toArray() returns empty array for zero-capacity queue', async () => {
+  const queue = new DefaultQueue<number>(0);
+  expect(queue.toArray()).toEqual([]);
+
+  // Even with waiting operations, toArray should be empty
+  const dequeuePromise = queue.dequeue();
+  expect(queue.toArray()).toEqual([]);
+
+  // Clean up the waiting promise
+  queue.maybeEnqueue(1);
+  await dequeuePromise;
+});
+
+test('Circular queue handles buffer expansion correctly for infinite capacity', async () => {
+  const queue = new DefaultQueue<number>(); // Infinite capacity, starts with buffer size 16
+
+  // Fill beyond initial buffer size to test expansion
+  const itemCount = 50;
+  for (let i = 0; i < itemCount; i++) {
+    await queue.enqueue(i);
+  }
+
+  expect(queue.size).toBe(itemCount);
+
+  // Verify FIFO order is maintained after expansion
+  const result = queue.toArray();
+  expect(result.length).toBe(itemCount);
+  for (let i = 0; i < itemCount; i++) {
+    expect(result[i]).toBe(i);
+  }
+
+  // Dequeue some items and verify order
+  for (let i = 0; i < 10; i++) {
+    expect(await queue.dequeue()).toBe(i);
+  }
+
+  // Add more items and verify they're added at the end
+  await queue.enqueue(100);
+  await queue.enqueue(101);
+
+  const finalArray = queue.toArray();
+  expect(finalArray.slice(0, 5)).toEqual([10, 11, 12, 13, 14]); // First remaining items
+  expect(finalArray.slice(-2)).toEqual([100, 101]); // Last added items
+});
+
+test('Circular queue maintains performance with wrap-around operations', () => {
+  const queue = new DefaultQueue<number>(10);
+
+  // Fill the queue
+  for (let i = 0; i < 10; i++) {
+    queue.maybeEnqueue(i);
+  }
+
+  // Dequeue half the items
+  for (let i = 0; i < 5; i++) {
+    queue.maybeDequeue();
+  }
+
+  // Add new items (this should wrap around in circular buffer)
+  for (let i = 10; i < 15; i++) {
+    queue.maybeEnqueue(i);
+  }
+
+  expect(queue.size).toBe(10);
+  expect(queue.toArray()).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+
+  // Verify FIFO order is maintained
+  const results = [];
+  while (queue.size > 0) {
+    const [item] = queue.maybeDequeue();
+    results.push(item);
+  }
+
+  expect(results).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+});
