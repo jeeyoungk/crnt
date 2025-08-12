@@ -35,7 +35,7 @@ const config = {
     'SetSignature',
   ],
   readme: 'README.md',
-  projectDocuments: ['README.md'],
+  projectDocuments: ['CHANGELOG.md'],
   alwaysCreateEntryPointModule: false,
   exclude: ['**/*.test.ts', 'node_modules/*', 'docs/*', 'dist/*'],
   categoryOrder: ['*', 'Common', 'Other'],
@@ -50,6 +50,9 @@ const config = {
   navigation: {
     includeCategories: true,
     includeGroups: false,
+  },
+  navigationLinks: {
+    Github: 'https://github.com/jeeyoungk/crnt',
   },
   categorizeByGroup: false,
   externalSymbolLinkMappings: {

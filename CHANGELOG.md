@@ -1,3 +1,7 @@
+---
+# typedoc frontmatter
+category: 'none'
+---
 ## [0.0.21](https://github.com/jeeyoungk/crnt/compare/v0.0.20...v0.0.21) (2025-08-12)
 
 
