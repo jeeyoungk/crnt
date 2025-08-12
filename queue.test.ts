@@ -977,6 +977,8 @@ describe('Queue AsyncIterable functionality', () => {
 
     // The abort signal should now be aborted
     expect(abortSignal?.aborted).toBe(true);
+    await queue.enqueue(43);
+    expect(await queue.dequeue()).toBe(43);
   });
 
   test('async iterator aborts dequeue when for-await loop breaks', async () => {
