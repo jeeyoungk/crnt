@@ -57,12 +57,14 @@ const config = {
     'bun-types': {
       AbortSignal:
         'https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal',
+      AbortController:
+        'https://developer.mozilla.org/en-US/docs/Web/API/AbortController',
     },
     typescript: {
       Iterator:
         'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator',
       Iterable:
-        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterable',
+        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator',
       AsyncIterator:
         'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator',
       AsyncIterable:
