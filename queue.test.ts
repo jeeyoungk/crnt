@@ -1,6 +1,7 @@
-import { test, expect } from 'bun:test';
+import { test, expect, describe } from 'bun:test';
 import { DefaultQueue } from './queue';
 import { withFakeTimers } from './test-helpers';
+import { QueueClosedError, type Options } from './common';
 
 test('Queue allows immediate enqueue/dequeue when capacity available', async () => {
   const queue = new DefaultQueue<number>(3);
@@ -603,4 +604,414 @@ test('Circular queue maintains performance with wrap-around operations', () => {
   }
 
   expect(results).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+});
+
+describe('Queue close functionality', () => {
+  test('close() prevents further enqueue operations', async () => {
+    const queue = new DefaultQueue<number>(3);
+
+    // Enqueue some items first
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+
+    // Close the queue
+    queue.close();
+    expect(queue.closed).toBe(true);
+
+    // Further enqueue operations should throw QueueClosedError
+    expect(() => queue.enqueue(3)).toThrow(QueueClosedError);
+  });
+
+  test('maybeEnqueue returns false after close', () => {
+    const queue = new DefaultQueue<number>(3);
+
+    // Should work before close
+    expect(queue.maybeEnqueue(1)).toBe(true);
+
+    queue.close();
+
+    // Should return false after close
+    expect(queue.maybeEnqueue(2)).toBe(false);
+  });
+
+  test('dequeue works until queue is exhausted after close', async () => {
+    const queue = new DefaultQueue<string>(3);
+
+    // Add some items
+    await queue.enqueue('a');
+    await queue.enqueue('b');
+    await queue.enqueue('c');
+
+    // Close the queue
+    queue.close();
+
+    // Should be able to dequeue all items
+    expect(await queue.dequeue()).toBe('a');
+    expect(await queue.dequeue()).toBe('b');
+    expect(await queue.dequeue()).toBe('c');
+
+    // Further dequeue should throw QueueClosedError
+    expect(() => queue.dequeue()).toThrow(QueueClosedError);
+  });
+
+  test('maybeDequeue works until exhausted after close', () => {
+    const queue = new DefaultQueue<number>(2);
+
+    queue.maybeEnqueue(10);
+    queue.maybeEnqueue(20);
+    queue.close();
+
+    // Should be able to dequeue existing items
+    expect(queue.maybeDequeue()).toEqual([10, true]);
+    expect(queue.maybeDequeue()).toEqual([20, true]);
+
+    // No more items available
+    expect(queue.maybeDequeue()).toEqual([undefined, false]);
+  });
+
+  test('close rejects waiting enqueue operations', async () => {
+    const queue = new DefaultQueue<number>(1);
+
+    // Fill the queue
+    await queue.enqueue(1);
+
+    // Start a blocking enqueue
+    const enqueuePromise = queue.enqueue(2);
+
+    // Give time for enqueue to be waiting
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Close the queue - should reject waiting enqueue
+    queue.close();
+
+    await expect(enqueuePromise).rejects.toThrow(QueueClosedError);
+  });
+
+  test('close rejects waiting dequeue operations when queue is empty', async () => {
+    const queue = new DefaultQueue<string>(2);
+
+    // Start a blocking dequeue on empty queue
+    const dequeuePromise = queue.dequeue();
+
+    // Give time for dequeue to be waiting
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Close the queue - should reject waiting dequeue since queue is empty
+    queue.close();
+
+    await expect(dequeuePromise).rejects.toThrow(QueueClosedError);
+  });
+
+  test('close allows waiting dequeue to complete if items available', async () => {
+    const queue = new DefaultQueue<number>(2);
+
+    // Add an item
+    await queue.enqueue(42);
+
+    // Start another enqueue to fill the queue
+    await queue.enqueue(43);
+
+    // Start a blocking enqueue
+    const enqueuePromise = queue.enqueue(44);
+
+    // Give time for enqueue to be waiting
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Close the queue
+    queue.close();
+
+    // Dequeue should still work and wake up the waiting enqueuer... wait, no
+    // The waiting enqueuer should have been rejected by close()
+    await expect(enqueuePromise).rejects.toThrow(QueueClosedError);
+
+    // But dequeue should work
+    expect(await queue.dequeue()).toBe(42);
+    expect(await queue.dequeue()).toBe(43);
+  });
+
+  test('zero-capacity queue close behavior', async () => {
+    const queue = new DefaultQueue<string>(0);
+
+    // Start a blocking enqueue
+    const enqueuePromise = queue.enqueue('test');
+
+    // Give time for enqueue to be waiting
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Close should reject the waiting enqueue
+    queue.close();
+    await expect(enqueuePromise).rejects.toThrow(QueueClosedError);
+
+    // New operations should fail
+    expect(() => queue.enqueue('fail')).toThrow(QueueClosedError);
+    expect(() => queue.dequeue()).toThrow(QueueClosedError);
+  });
+
+  test('multiple close calls are safe', () => {
+    const queue = new DefaultQueue<number>(1);
+
+    queue.close();
+    expect(queue.closed).toBe(true);
+
+    // Second close should not throw
+    queue.close();
+    expect(queue.closed).toBe(true);
+  });
+});
+
+describe('Queue AsyncIterable functionality', () => {
+  test('queue can be used with for-await-of loop', async () => {
+    const queue = new DefaultQueue<number>(3);
+    const results: number[] = [];
+
+    // Add some items
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+    await queue.enqueue(3);
+
+    // Close the queue to end iteration
+    queue.close();
+
+    // Iterate through the queue
+    for await (const item of queue) {
+      results.push(item);
+    }
+
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  test('async iterator continues until queue is closed and empty', async () => {
+    const queue = new DefaultQueue<string>(2);
+    const results: string[] = [];
+
+    // Start consuming in background
+    const consumerPromise = (async () => {
+      for await (const item of queue) {
+        results.push(item);
+      }
+    })();
+
+    // Add items over time
+    await queue.enqueue('a');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    await queue.enqueue('b');
+    await new Promise(resolve => setTimeout(resolve, 10));
+    await queue.enqueue('c');
+
+    // Close the queue to end iteration
+    await new Promise(resolve => setTimeout(resolve, 10));
+    queue.close();
+
+    // Wait for consumer to finish
+    await consumerPromise;
+
+    expect(results).toEqual(['a', 'b', 'c']);
+  });
+
+  test('async iterator handles empty closed queue', async () => {
+    const queue = new DefaultQueue<number>(1);
+    const results: number[] = [];
+
+    // Close immediately
+    queue.close();
+
+    // Should not iterate
+    for await (const item of queue) {
+      results.push(item);
+    }
+
+    expect(results).toEqual([]);
+  });
+
+  test('async iterator can be broken manually', async () => {
+    const queue = new DefaultQueue<number>();
+    const results: number[] = [];
+
+    // Add items
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+    await queue.enqueue(3);
+    await queue.enqueue(4);
+    await queue.enqueue(5);
+
+    // Iterate but break early
+    for await (const item of queue) {
+      results.push(item);
+      if (item === 3) {
+        break;
+      }
+    }
+
+    expect(results).toEqual([1, 2, 3]);
+    expect(queue.size).toBe(2); // Should still have items 4 and 5
+  });
+
+  test('async iterator with concurrent producer', async () => {
+    const queue = new DefaultQueue<number>(2);
+    const results: number[] = [];
+
+    // Start producer
+    const producerPromise = (async () => {
+      for (let i = 1; i <= 5; i++) {
+        await queue.enqueue(i);
+        await new Promise(resolve => setTimeout(resolve, 5));
+      }
+      queue.close();
+    })();
+
+    // Start consumer
+    const consumerPromise = (async () => {
+      for await (const item of queue) {
+        results.push(item);
+        await new Promise(resolve => setTimeout(resolve, 3));
+      }
+    })();
+
+    await Promise.all([producerPromise, consumerPromise]);
+
+    expect(results).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  test('async iterator propagates non-QueueClosedError exceptions', async () => {
+    const queue = new DefaultQueue<number>(1);
+
+    // Override dequeue to throw a different error after first call
+    let callCount = 0;
+    const originalDequeue = queue.dequeue.bind(queue);
+    queue.dequeue = async (options?: Options) => {
+      callCount++;
+      if (callCount === 2) {
+        throw new Error('Custom error');
+      }
+      return originalDequeue(options);
+    };
+
+    await queue.enqueue(42);
+
+    const iterator = queue[Symbol.asyncIterator]();
+
+    // First call should succeed
+    const first = await iterator.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(42);
+
+    // Second call should throw the custom error
+    await expect(iterator.next()).rejects.toThrow('Custom error');
+  });
+
+  test('async iterator can handle concurrent consumption', async () => {
+    const queue = new DefaultQueue<number>(3);
+    const results: number[] = [];
+
+    // Start a consumer
+    const consumerPromise = (async () => {
+      for await (const item of queue) {
+        results.push(item);
+      }
+    })();
+
+    // Producer adds items
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+    await queue.enqueue(3);
+
+    // Close the queue
+    queue.close();
+
+    // Wait for consumer to finish
+    await consumerPromise;
+
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  test('async iterator works with zero-capacity queue', async () => {
+    const queue = new DefaultQueue<string>(0);
+    const results: string[] = [];
+
+    // Start consumer
+    const consumerPromise = (async () => {
+      for await (const item of queue) {
+        results.push(item);
+      }
+    })();
+
+    // Give time for consumer to start waiting
+    await new Promise(resolve => setTimeout(resolve, 10));
+
+    // Send items through rendezvous
+    await queue.enqueue('hello');
+    await queue.enqueue('world');
+
+    // Close to end iteration
+    queue.close();
+
+    await consumerPromise;
+
+    expect(results).toEqual(['hello', 'world']);
+  });
+
+  test('async iterator aborts pending dequeue when iterator exits early', async () => {
+    const queue = new DefaultQueue<number>(1);
+    let abortSignal: AbortSignal | undefined;
+
+    // Override dequeue to capture the abort signal
+    const originalDequeue = queue.dequeue.bind(queue);
+    queue.dequeue = async (options?: Options) => {
+      abortSignal = options?.signal;
+      return originalDequeue(options);
+    };
+
+    await queue.enqueue(42);
+
+    const iterator = queue[Symbol.asyncIterator]();
+
+    // First call should succeed and capture the abort signal
+    const first = await iterator.next();
+    expect(first.done).toBe(false);
+    expect(first.value).toBe(42);
+    expect(abortSignal).toBeDefined();
+    expect(abortSignal?.aborted).toBe(false);
+
+    // Force early termination of iterator
+    await iterator.return!();
+
+    // The abort signal should now be aborted
+    expect(abortSignal?.aborted).toBe(true);
+    await queue.enqueue(43);
+    expect(await queue.dequeue()).toBe(43);
+  });
+
+  test('async iterator aborts dequeue when for-await loop breaks', async () => {
+    const queue = new DefaultQueue<number>();
+    let capturedAbortSignal: AbortSignal | undefined;
+
+    // Override dequeue to capture abort signal from the iterator
+    const originalDequeue = queue.dequeue.bind(queue);
+    queue.dequeue = async (options?: Options) => {
+      if (options?.signal && !capturedAbortSignal) {
+        capturedAbortSignal = options.signal;
+      }
+      return originalDequeue(options);
+    };
+
+    // Add some items
+    await queue.enqueue(1);
+    await queue.enqueue(2);
+
+    const results: number[] = [];
+
+    // Use for-await loop that breaks early
+    for await (const item of queue) {
+      results.push(item);
+      if (item === 2) {
+        // Break out of the loop, which should trigger the finally block in the iterator
+        // that calls ctrl.abort()
+        break;
+      }
+    }
+
+    expect(results).toEqual([1, 2]);
+    expect(capturedAbortSignal).toBeDefined();
+    expect(capturedAbortSignal?.aborted).toBe(true);
+  });
 });
