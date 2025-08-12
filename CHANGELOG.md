@@ -1,3 +1,10 @@
+## [0.0.20](https://github.com/jeeyoungk/crnt/compare/v0.0.19...v0.0.20) (2025-08-12)
+
+
+### Features
+
+* implement Queue close() method and AsyncIterable support ([336699b](https://github.com/jeeyoungk/crnt/commit/336699b885b4b5342f75bc5e832693c422694676))
+
 ## [0.0.19](https://github.com/jeeyoungk/crnt/compare/v0.0.18...v0.0.19) (2025-08-12)
 
 
