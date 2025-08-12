@@ -1,10 +1,4 @@
 /**
- * @categoryDescription Common
- * These functions are available for...
- * @module
- */
-
-/**
  * Base error class for all CRNT (Current) library errors
  */
 export class CrntError extends Error {

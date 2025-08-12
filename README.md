@@ -1,3 +1,8 @@
+---
+# typedoc frontmatter
+category: 'none'
+---
+
 # CRNT (Current)
 
 CRNT is a TypeScript library for async and concurrent programming primitives.

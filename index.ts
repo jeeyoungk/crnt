@@ -1,5 +1,12 @@
-export { type Semaphore, newSemaphore } from './semaphore';
-export { type Queue, newQueue } from './queue';
+/**
+ * @categoryDescription Common
+ * These functions are available for...
+ * @module
+ * @sortStrategy alphabetical
+ */
+
+export { Semaphore } from './semaphore';
+export { Queue } from './queue';
 export {
   type Options,
   CrntError,

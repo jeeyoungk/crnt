@@ -3,8 +3,8 @@
  */
 
 /**
- * Converts an AbortSignal into a Promise that rejects when the signal is aborted
- * @param signal - The AbortSignal to convert
+ * Converts an {@link AbortSignal} into a Promise that rejects when the signal is aborted
+ * @param signal - The {@link AbortSignal} to convert
  * @returns Promise that never resolves but rejects when the signal is aborted
  */
 export function abortSignalPromise(signal: AbortSignal): Promise<never> {

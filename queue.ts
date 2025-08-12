@@ -1,5 +1,8 @@
 import { _makeAbortSignal, type Options } from './common';
 
+/**
+ * @category Data Structure
+ */
 export interface Queue<T> {
   /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
   enqueue(item: T, options?: Options): Promise<void>;
@@ -17,7 +20,15 @@ export interface Queue<T> {
   toArray(): T[];
 }
 
-export function newQueue<T>(capacity: number = Infinity): Queue<T> {
+/**
+ * Creates a new {@link Queue} with the given capacity.
+ *
+ * @param capacity - The maximum number of items the queue can hold. Defaults to Infinity.
+ * @returns A new {@link Queue} instance.
+ * @category Data Structure
+ */
+// eslint-disable-next-line no-redeclare
+export function Queue<T>(capacity: number = Infinity): Queue<T> {
   return new DefaultQueue<T>(capacity);
 }
 

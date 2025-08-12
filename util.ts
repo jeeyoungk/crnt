@@ -1,6 +1,5 @@
 import type { Options } from './common';
-import { newSemaphore } from './dist';
-import type { Semaphore } from './semaphore';
+import { Semaphore } from './semaphore';
 
 /** Convenient function to perform a concurrent map operation. */
 export function parallelMap<T, U>(
@@ -9,7 +8,7 @@ export function parallelMap<T, U>(
   semaphore: Semaphore | number,
   options?: Options
 ): Promise<U[]> {
-  const s = typeof semaphore === 'number' ? newSemaphore(semaphore) : semaphore;
+  const s = typeof semaphore === 'number' ? Semaphore(semaphore) : semaphore;
   return Promise.all(
     array.map(async item => {
       if (!s.maybeAcquire()) {

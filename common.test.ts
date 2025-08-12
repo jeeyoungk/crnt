@@ -241,15 +241,15 @@ describe('common', () => {
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
       expect(promiseMapInternal.size).toBe(0);
-      
+
       // Test with unresolved promises
       const unresolvedPromise1 = new Promise(() => {});
       const unresolvedPromise2 = new Promise(() => {});
-      
+
       await isResolvedChecker(unresolvedPromise1);
       await isResolvedChecker(unresolvedPromise2);
       expect(promiseMapInternal.size).toBe(2);
-      
+
       // Test with resolved promise - should be automatically cleaned up
       const resolvedPromise = Promise.resolve('test');
       await isResolvedChecker(resolvedPromise);
@@ -331,15 +331,15 @@ describe('common', () => {
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
       expect(promiseMapInternal.size).toBe(0);
-      
+
       // Test with unresolved promises
       const unresolvedPromise1 = new Promise(() => {});
       const unresolvedPromise2 = new Promise(() => {});
-      
+
       await isResolved(unresolvedPromise1);
       await isResolved(unresolvedPromise2);
       expect(promiseMapInternal.size).toBe(2);
-      
+
       // Test with resolved promise - should be automatically cleaned up
       const resolvedPromise = Promise.resolve('test');
       await isResolved(resolvedPromise);

@@ -1,4 +1,4 @@
-import { newQueue } from './queue';
+import { Queue } from './queue';
 
 /**
  * Creates a buffered AsyncIterable that pre-loads N elements from the source iterable.
@@ -41,9 +41,7 @@ export function toBufferedAsyncIterable<T>(
   return {
     [Symbol.asyncIterator]: () => {
       const sourceIterator = source[Symbol.asyncIterator]();
-      const queue = newQueue<'DONE' | ['ITEM', T] | ['ERROR', unknown]>(
-        bufferSize
-      );
+      const q = Queue<'DONE' | ['ITEM', T] | ['ERROR', unknown]>(bufferSize);
       let sourceCompleted = false;
       let fillerStarted = false;
 
@@ -56,15 +54,15 @@ export function toBufferedAsyncIterable<T>(
           while (!sourceCompleted) {
             const result = await sourceIterator.next();
             if (result.done) {
-              await queue.enqueue('DONE');
+              await q.enqueue('DONE');
               break;
             }
 
             // Enqueue item - this will wait if buffer is full
-            await queue.enqueue(['ITEM', result.value]);
+            await q.enqueue(['ITEM', result.value]);
           }
         } catch (error) {
-          await queue.enqueue(['ERROR', error]);
+          await q.enqueue(['ERROR', error]);
         }
       };
 
@@ -82,7 +80,7 @@ export function toBufferedAsyncIterable<T>(
           }
 
           // Get the next message from the queue
-          const message = await queue.dequeue();
+          const message = await q.dequeue();
 
           // Handle different message types
           if (message === 'DONE') {

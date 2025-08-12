@@ -1,6 +1,9 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
 
-export interface Semaphore {
+/**
+ * @category Data Structure
+ */
+export type Semaphore = {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
   acquire(options?: Options): Promise<void>;
   /** synchronously acquire a permit if one is available, otherwise return false */
@@ -9,9 +12,17 @@ export interface Semaphore {
   release(): void;
   /** run a function with a semaphore, acquiring a permit before running and releasing it after */
   run<T>(fn: () => Promise<T>, options?: Options): Promise<T>;
-}
+};
 
-export function newSemaphore(permits: number): Semaphore {
+/**
+ * Creates a new {@link Semaphore} with the given number of permits.
+ *
+ * @param permits - The number of permits the semaphore has.
+ * @returns A new {@link Semaphore} instance.
+ * @category Data Structure
+ */
+// eslint-disable-next-line no-redeclare
+export function Semaphore(permits: number): Semaphore {
   return new DefaultSemaphore(permits);
 }
 
