@@ -1,4 +1,4 @@
-import { Queue } from './queue';
+import { newQueue } from './queue';
 
 /**
  * Creates a buffered AsyncIterable that pre-loads N elements from the source iterable.
@@ -41,7 +41,7 @@ export function toBufferedAsyncIterable<T>(
   return {
     [Symbol.asyncIterator]: () => {
       const sourceIterator = source[Symbol.asyncIterator]();
-      const q = Queue<'DONE' | ['ITEM', T] | ['ERROR', unknown]>(bufferSize);
+      const q = newQueue<'DONE' | ['ITEM', T] | ['ERROR', unknown]>(bufferSize);
       let sourceCompleted = false;
       let fillerStarted = false;
 

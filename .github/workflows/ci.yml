@@ -15,29 +15,31 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-
       - name: Install dependencies
+        id: install
         run: bun install
-
       - name: Check code formatting
+        if: steps.install.conclusion == 'success'
         run: bun run format:check
-
       - name: Run linting
+        if: steps.install.conclusion == 'success'
         run: bun run lint
-
       - name: Run type checking
+        if: steps.install.conclusion == 'success'
         run: bun run typecheck
-
       - name: Build package
+        if: steps.install.conclusion == 'success'
         run: bun run tsup
-
       - name: Run tests
+        if: steps.install.conclusion == 'success'
         run: bun test
+      - name: Run Documentation
+        if: steps.install.conclusion == 'success'
+        run: bun run docs --treatWarningsAsErrors
 
   release:
     runs-on: ubuntu-latest

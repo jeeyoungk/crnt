@@ -5,8 +5,8 @@
  * @sortStrategy alphabetical
  */
 
-export { Semaphore } from './semaphore';
-export { Queue } from './queue';
+export { newSemaphore, type Semaphore } from './semaphore';
+export { newQueue, type Queue } from './queue';
 export {
   type Options,
   CrntError,
@@ -14,7 +14,8 @@ export {
   isResolved,
 } from './common';
 export {
-  Stream,
+  newStream,
+  type Stream,
   type StreamConfig,
   type MapOption,
   type BatchOption,

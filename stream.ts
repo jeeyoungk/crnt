@@ -426,8 +426,7 @@ export class DefaultStream<T> implements Stream<T> {
  * const asyncStream = Stream(generateData());
  * ```
  */
-// eslint-disable-next-line no-redeclare
-export function Stream<T>(
+export function newStream<T>(
   iterable: Iterable<T> | AsyncIterable<T>,
   config?: StreamConfig
 ): Stream<T> {

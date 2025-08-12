@@ -22,8 +22,7 @@ export interface Semaphore {
  * @returns A new {@link Semaphore} instance.
  * @category Data Structure
  */
-// eslint-disable-next-line no-redeclare
-export function Semaphore(permits: number): Semaphore {
+export function newSemaphore(permits: number): Semaphore {
   return new DefaultSemaphore(permits);
 }
 

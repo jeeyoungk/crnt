@@ -23,3 +23,4 @@ bun add crnt
 - Unopinionated, lightweight, and un-intrusive
 - Support for modern constructs (ex: [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController))
 - Performance - optimized for speed and reducing memory leaks.
+- Synchronous and asynchronous methods.

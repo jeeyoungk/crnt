@@ -28,8 +28,7 @@ export interface Queue<T> {
  * @returns A new {@link Queue} instance.
  * @category Data Structure
  */
-// eslint-disable-next-line no-redeclare
-export function Queue<T>(capacity: number = Infinity): Queue<T> {
+export function newQueue<T>(capacity: number = Infinity): Queue<T> {
   return new DefaultQueue<T>(capacity);
 }
 
