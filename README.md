@@ -24,3 +24,11 @@ bun add crnt
 - Support for modern constructs (ex: [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController))
 - Performance - optimized for speed and reducing memory leaks.
 - Synchronous and asynchronous methods.
+
+# High level structure
+
+Most operations return `Promise`s.
+
+However, there are various synchronous `maybe*()` methods which operates synchronously. These operations return `true` if they were successful, `false` otherwise.
+
+Operations can be cancelled, either by a timeout value or an `AbortSignal`.

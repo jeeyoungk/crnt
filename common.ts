@@ -9,12 +9,12 @@ export class CrntError extends Error {
 }
 
 /**
- * Common options for many crnt functions.
+ * Common options for crnt operations. This controls the timeout and cancellation behavior of a given function.
  *
  * @category Common
  */
 export interface Options {
-  /** same signature as fetch(), but for aborting operations */
+  /** same signature as fetch(), but for aborting operations. If provided, the operation will be aborted when the signal is aborted. */
   signal?: AbortSignal;
   /** timeout in milliseconds. This works in tandem with the {@link signal} option, whichever triggers first (signal or timeout) will abort the operation. */
   timeout?: number;

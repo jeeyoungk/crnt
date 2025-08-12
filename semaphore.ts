@@ -21,6 +21,17 @@ export interface Semaphore {
  * @param permits - The number of permits the semaphore has.
  * @returns A new {@link Semaphore} instance.
  * @category Data Structure
+ *
+ * @example
+ * ```typescript
+ * const semaphore = newSemaphore(2);
+ *
+ * // Limit concurrent operations to 2
+ * await semaphore.run(async () => {
+ *   // Critical section - only 2 operations can run simultaneously
+ *   return await fetch('/api/data');
+ * });
+ * ```
  */
 export function newSemaphore(permits: number): Semaphore {
   return new DefaultSemaphore(permits);

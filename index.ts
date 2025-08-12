@@ -1,8 +1,13 @@
 /**
  * @categoryDescription Common
- * These functions are available for...
+ * Common functions and types.
  * @module
- * @sortStrategy alphabetical
+ */
+
+/**
+ * @categoryDescription Data Structure
+ * Concurrent data structures and primitives.
+ * @module
  */
 
 export { newSemaphore, type Semaphore } from './semaphore';
