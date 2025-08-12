@@ -1,6 +1,7 @@
 import { test, expect } from 'bun:test';
 import { DefaultSemaphore } from './semaphore';
 import { CrntError } from './common';
+import { withFakeTimers } from './test-helpers';
 
 test('Semaphore allows immediate acquisition when permits are available', async () => {
   const semaphore = new DefaultSemaphore(2);
@@ -11,25 +12,27 @@ test('Semaphore allows immediate acquisition when permits are available', async 
 });
 
 test('Semaphore blocks when no permits are available', async () => {
-  const semaphore = new DefaultSemaphore(1);
-  let acquired = false;
+  await withFakeTimers(async clock => {
+    const semaphore = new DefaultSemaphore(1);
+    let acquired = false;
 
-  // First acquisition should succeed immediately
-  await semaphore.acquire();
+    // First acquisition should succeed immediately
+    await semaphore.acquire();
 
-  // Second acquisition should block
-  const acquirePromise = semaphore.acquire().then(() => {
-    acquired = true;
+    // Second acquisition should block
+    const acquirePromise = semaphore.acquire().then(() => {
+      acquired = true;
+    });
+
+    // Give a small delay to ensure the acquire() would have completed if it wasn't blocked
+    clock.tick(10);
+    expect(acquired).toBe(false);
+
+    // Release permit and verify the waiting acquisition completes
+    semaphore.release();
+    await acquirePromise;
+    expect(acquired).toBe(true);
   });
-
-  // Give a small delay to ensure the acquire() would have completed if it wasn't blocked
-  await new Promise(resolve => setTimeout(resolve, 10));
-  expect(acquired).toBe(false);
-
-  // Release permit and verify the waiting acquisition completes
-  semaphore.release();
-  await acquirePromise;
-  expect(acquired).toBe(true);
 });
 
 test('Semaphore maintains FIFO order for waiting operations', async () => {
@@ -80,21 +83,23 @@ test('Semaphore handles concurrent acquire and release operations', async () => 
 });
 
 test('Semaphore works correctly with zero initial permits', async () => {
-  const semaphore = new DefaultSemaphore(0);
-  let acquired = false;
+  await withFakeTimers(async clock => {
+    const semaphore = new DefaultSemaphore(0);
+    let acquired = false;
 
-  // Should block immediately
-  const acquirePromise = semaphore.acquire().then(() => {
-    acquired = true;
+    // Should block immediately
+    const acquirePromise = semaphore.acquire().then(() => {
+      acquired = true;
+    });
+
+    clock.tick(10);
+    expect(acquired).toBe(false);
+
+    // Release a permit
+    semaphore.release();
+    await acquirePromise;
+    expect(acquired).toBe(true);
   });
-
-  await new Promise(resolve => setTimeout(resolve, 10));
-  expect(acquired).toBe(false);
-
-  // Release a permit
-  semaphore.release();
-  await acquirePromise;
-  expect(acquired).toBe(true);
 });
 
 test('Semaphore handles rapid acquire/release cycles', async () => {
@@ -121,8 +126,8 @@ test('Semaphore maintains correct permit count under stress', async () => {
     activeOperations++;
     maxConcurrent = Math.max(maxConcurrent, activeOperations);
 
-    // Simulate work
-    await new Promise(resolve => setTimeout(resolve, Math.random() * 5));
+    // Simulate work with deterministic timing
+    await new Promise(resolve => setTimeout(resolve, 5));
 
     activeOperations--;
     semaphore.release();

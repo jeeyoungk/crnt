@@ -1,5 +1,6 @@
 import { test, expect } from 'bun:test';
 import { DefaultQueue } from './queue';
+import { withFakeTimers } from './test-helpers';
 
 test('Queue allows immediate enqueue/dequeue when capacity available', async () => {
   const queue = new DefaultQueue<number>(3);
@@ -18,53 +19,57 @@ test('Queue allows immediate enqueue/dequeue when capacity available', async () 
 });
 
 test('Queue blocks enqueue when at capacity', async () => {
-  const queue = new DefaultQueue<string>(2);
-  let enqueued = false;
+  await withFakeTimers(async clock => {
+    const queue = new DefaultQueue<string>(2);
+    let enqueued = false;
 
-  // Fill the queue to capacity
-  await queue.enqueue('first');
-  await queue.enqueue('second');
-  expect(queue.size).toBe(2);
+    // Fill the queue to capacity
+    await queue.enqueue('first');
+    await queue.enqueue('second');
+    expect(queue.size).toBe(2);
 
-  // Third enqueue should block
-  const enqueuePromise = queue.enqueue('third').then(() => {
-    enqueued = true;
+    // Third enqueue should block
+    const enqueuePromise = queue.enqueue('third').then(() => {
+      enqueued = true;
+    });
+
+    // Give a small delay to ensure the enqueue() would have completed if it wasn't blocked
+    clock.tick(10);
+    expect(enqueued).toBe(false);
+    expect(queue.size).toBe(2);
+
+    // Dequeue one item and verify the waiting enqueue completes
+    const item = await queue.dequeue();
+    expect(item).toBe('first');
+    await enqueuePromise;
+    expect(enqueued).toBe(true);
+    expect(queue.size).toBe(2);
   });
-
-  // Give a small delay to ensure the enqueue() would have completed if it wasn't blocked
-  await new Promise(resolve => setTimeout(resolve, 10));
-  expect(enqueued).toBe(false);
-  expect(queue.size).toBe(2);
-
-  // Dequeue one item and verify the waiting enqueue completes
-  const item = await queue.dequeue();
-  expect(item).toBe('first');
-  await enqueuePromise;
-  expect(enqueued).toBe(true);
-  expect(queue.size).toBe(2);
 });
 
 test('Queue blocks dequeue when empty', async () => {
-  const queue = new DefaultQueue<number>();
-  let dequeued = false;
-  let dequeuedValue: number | undefined;
+  await withFakeTimers(async clock => {
+    const queue = new DefaultQueue<number>();
+    let dequeued = false;
+    let dequeuedValue: number | undefined;
 
-  // Dequeue from empty queue should block
-  const dequeuePromise = queue.dequeue().then(value => {
-    dequeued = true;
-    dequeuedValue = value;
+    // Dequeue from empty queue should block
+    const dequeuePromise = queue.dequeue().then(value => {
+      dequeued = true;
+      dequeuedValue = value;
+    });
+
+    // Give a small delay to ensure the dequeue() would have completed if it wasn't blocked
+    clock.tick(10);
+    expect(dequeued).toBe(false);
+
+    // Enqueue an item and verify the waiting dequeue completes
+    await queue.enqueue(42);
+    await dequeuePromise;
+    expect(dequeued).toBe(true);
+    expect(dequeuedValue).toBe(42);
+    expect(queue.size).toBe(0);
   });
-
-  // Give a small delay to ensure the dequeue() would have completed if it wasn't blocked
-  await new Promise(resolve => setTimeout(resolve, 10));
-  expect(dequeued).toBe(false);
-
-  // Enqueue an item and verify the waiting dequeue completes
-  await queue.enqueue(42);
-  await dequeuePromise;
-  expect(dequeued).toBe(true);
-  expect(dequeuedValue).toBe(42);
-  expect(queue.size).toBe(0);
 });
 
 test('Queue maintains FIFO order for enqueue operations', async () => {

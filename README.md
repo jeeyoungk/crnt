@@ -17,4 +17,4 @@ bun add crnt
 - TypeScript - first
 - Unopinionated, lightweight, and un-intrusive
 - Support for modern constructs (ex: [AbortController](https://developer.mozilla.org/en-US/docs/Web/API/AbortController))
-- Performance
+- Performance - optimized for speed and reducing memory leaks.

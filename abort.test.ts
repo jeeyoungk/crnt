@@ -1,14 +1,18 @@
 import { test, expect } from 'bun:test';
 import { abortSignalPromise, raceWithAbort, sleep } from './abort';
+import { withFakeTimers } from './test-helpers';
 
 test('signalToPromise rejects when signal is aborted', async () => {
-  const controller = new AbortController();
-  const signalPromise = abortSignalPromise(controller.signal);
+  await withFakeTimers(async clock => {
+    const controller = new AbortController();
+    const signalPromise = abortSignalPromise(controller.signal);
 
-  // Abort after a short delay
-  setTimeout(() => controller.abort(), 10);
+    // Abort after a short delay
+    setTimeout(() => controller.abort(), 10);
+    clock.tick(10);
 
-  await expect(signalPromise).rejects.toThrow('The operation was aborted');
+    await expect(signalPromise).rejects.toThrow('The operation was aborted');
+  });
 });
 
 test('signalToPromise rejects immediately if signal already aborted', async () => {
