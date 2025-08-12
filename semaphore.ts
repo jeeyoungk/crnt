@@ -3,7 +3,7 @@ import { _makeAbortSignal, CrntError, type Options } from './common';
 /**
  * @category Data Structure
  */
-export type Semaphore = {
+export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
   acquire(options?: Options): Promise<void>;
   /** synchronously acquire a permit if one is available, otherwise return false */
@@ -12,7 +12,7 @@ export type Semaphore = {
   release(): void;
   /** run a function with a semaphore, acquiring a permit before running and releasing it after */
   run<T>(fn: () => Promise<T>, options?: Options): Promise<T>;
-};
+}
 
 /**
  * Creates a new {@link Semaphore} with the given number of permits.
