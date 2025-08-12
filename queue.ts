@@ -1,5 +1,9 @@
-import { _makeAbortSignal, type Options, QueueClosedError } from './common';
-import { CrntError } from './dist';
+import {
+  _makeAbortSignal,
+  type Options,
+  QueueClosedError,
+  CrntError,
+} from './common';
 
 /**
  * An asynchronous queue. This is modelled after:

@@ -25,6 +25,13 @@ bun add crnt
 - Performance - optimized for speed and reducing memory leaks.
 - Synchronous and asynchronous methods.
 
+The library is a modern replacement for the following popular NPM libraries
+
+- [async-mutex](https://www.npmjs.com/package/async-mutex)
+- [async-sema](https://www.npmjs.com/package/async-sema)
+- [p-limit](https://www.npmjs.com/package/p-limit)
+- [p-queue](https://www.npmjs.com/package/p-queue)
+
 # High level structure
 
 Most operations return `Promise`s.

@@ -32,6 +32,26 @@ export default [
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
+      // Prevent imports from dist directory
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                './dist',
+                './dist/*',
+                '../dist',
+                '../dist/*',
+                '**/dist',
+                '**/dist/*',
+              ],
+              message:
+                'Imports from /dist directory are not allowed. Import from source files instead.',
+            },
+          ],
+        },
+      ],
     },
   },
   ...jsonSchemaValidator.configs['flat/recommended'],
