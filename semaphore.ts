@@ -2,6 +2,7 @@ import { _makeAbortSignal, CrntError, type Options } from './common';
 
 /**
  * @category Data Structure
+ * @summary Semaphore to protect critical sections and control concurrency.
  */
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */

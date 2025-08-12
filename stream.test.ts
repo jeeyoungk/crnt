@@ -1,10 +1,5 @@
 import { test, expect, describe } from 'bun:test';
-import {
-  newStream,
-  fromIterable,
-  fromAsyncIterable,
-  DefaultStream,
-} from './stream';
+import { Stream, DefaultStream } from './stream';
 
 // Helper function to create an async iterable from an array with optional delays
 async function* createAsyncIterable<T>(
@@ -32,7 +27,7 @@ describe('Stream', () => {
   describe('newStream', () => {
     test('creates a stream from async iterable', async () => {
       const source = createAsyncIterable([1, 2, 3]);
-      const stream = newStream(source);
+      const stream = Stream(source);
       expect(stream).toBeInstanceOf(DefaultStream);
 
       const results = await collectAll(stream);
@@ -41,7 +36,7 @@ describe('Stream', () => {
 
     test('accepts configuration', async () => {
       const source = createAsyncIterable([1, 2, 3]);
-      const stream = newStream(source, { concurrency: 5, batchSize: 2 });
+      const stream = Stream(source, { concurrency: 5, batchSize: 2 });
 
       const results = await collectAll(stream);
       expect(results).toEqual([1, 2, 3]);
@@ -50,48 +45,44 @@ describe('Stream', () => {
 
   describe('fromIterable', () => {
     test('creates stream from array', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const results = await collectAll(stream);
       expect(results).toEqual([1, 2, 3, 4, 5]);
     });
 
     test('creates stream from Set', async () => {
       const set = new Set(['a', 'b', 'c']);
-      const stream = fromIterable(set);
+      const stream = Stream(set);
       const results = await collectAll(stream);
       expect(results).toEqual(['a', 'b', 'c']);
     });
 
     test('works with empty array', async () => {
-      const stream = fromIterable([]);
+      const stream = Stream([]);
       const results = await collectAll(stream);
       expect(results).toEqual([]);
     });
 
     test('accepts configuration', async () => {
-      const stream = fromIterable([1, 2, 3], { concurrency: 2, batchSize: 1 });
+      const stream = Stream([1, 2, 3], { concurrency: 2, batchSize: 1 });
       const results = await collectAll(stream);
       expect(results).toEqual([1, 2, 3]);
     });
-  });
 
-  describe('fromAsyncIterable', () => {
-    test('creates stream from async generator', async () => {
+    test('works with async iterables', async () => {
       async function* gen() {
         yield 1;
         yield 2;
         yield 3;
       }
 
-      const stream = fromAsyncIterable(gen());
+      const stream = Stream(gen());
       const results = await collectAll(stream);
       expect(results).toEqual([1, 2, 3]);
     });
 
-    test('preserves order with delays', async () => {
-      const stream = fromAsyncIterable(
-        createAsyncIterable([1, 2, 3, 4, 5], 10)
-      );
+    test('preserves order with async iterables and delays', async () => {
+      const stream = Stream(createAsyncIterable([1, 2, 3, 4, 5], 10));
       const results = await collectAll(stream);
       expect(results).toEqual([1, 2, 3, 4, 5]);
     });
@@ -99,13 +90,13 @@ describe('Stream', () => {
 
   describe('map', () => {
     test('maps over items sequentially', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const results = await stream.map(async x => x * 2);
       expect(results).toEqual([2, 4, 6, 8, 10]);
     });
 
     test('maps with concurrency', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const results = await stream.map(
         async x => {
           await new Promise(resolve => setTimeout(resolve, 10));
@@ -117,7 +108,7 @@ describe('Stream', () => {
     });
 
     test('processes items with concurrency', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const startTime = Date.now();
       const results = await stream.map(
         async x => {
@@ -135,16 +126,16 @@ describe('Stream', () => {
     });
 
     test('handles async errors', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const mappedStream = stream.map(async x => {
         if (x === 2) throw new Error('Test error');
         return x * 2;
       });
-      await expect(mappedStream.toArray()).rejects.toThrow('Test error');
+      expect(mappedStream.toArray()).rejects.toThrow('Test error');
     });
 
     test('works with empty stream', async () => {
-      const stream = fromIterable([]);
+      const stream = Stream([]);
       const results = await stream.map(async x => x * 2);
       expect(results).toEqual([]);
     });
@@ -152,7 +143,7 @@ describe('Stream', () => {
 
   describe('mapBatch', () => {
     test('processes items in batches', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5, 6]);
+      const stream = Stream([1, 2, 3, 4, 5, 6]);
       const batches: number[][] = [];
 
       const results = await stream.mapBatch(
@@ -172,7 +163,7 @@ describe('Stream', () => {
     });
 
     test('handles incomplete final batch', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const batches: number[][] = [];
 
       const results = await stream.mapBatch(
@@ -188,7 +179,7 @@ describe('Stream', () => {
     });
 
     test('processes batches concurrently', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5, 6]);
+      const stream = Stream([1, 2, 3, 4, 5, 6]);
       const processingTimes: number[] = [];
 
       const results = await stream.mapBatch(
@@ -206,7 +197,7 @@ describe('Stream', () => {
     });
 
     test('handles batch processing errors', async () => {
-      const stream = fromIterable([1, 2, 3, 4]);
+      const stream = Stream([1, 2, 3, 4]);
 
       const batchedStream = stream.mapBatch(
         async batch => {
@@ -215,11 +206,11 @@ describe('Stream', () => {
         },
         { batchSize: 2 }
       );
-      await expect(batchedStream.toArray()).rejects.toThrow('Batch error');
+      expect(batchedStream.toArray()).rejects.toThrow('Batch error');
     });
 
     test('works with single item batches', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const results = await stream.mapBatch(
         async batch => batch.map(x => x * 2),
         { batchSize: 1 }
@@ -228,7 +219,7 @@ describe('Stream', () => {
     });
 
     test('works with batch size larger than input', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const batches: number[][] = [];
 
       const results = await stream.mapBatch(
@@ -244,7 +235,7 @@ describe('Stream', () => {
     });
 
     test('handles empty batches gracefully', async () => {
-      const stream = fromIterable([]);
+      const stream = Stream([]);
       const results = await stream.mapBatch(
         async batch => batch.map(x => x * 2),
         { batchSize: 2 }
@@ -255,14 +246,14 @@ describe('Stream', () => {
 
   describe('chaining operations', () => {
     test('chains map operations', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const results = await stream.map(async x => x * 2).map(async x => x + 1);
 
       expect(results).toEqual([3, 5, 7, 9, 11]);
     });
 
     test('chains map and mapBatch', async () => {
-      const stream = fromIterable([1, 2, 3, 4]);
+      const stream = Stream([1, 2, 3, 4]);
       const results = await stream
         .map(async x => x * 2)
         .mapBatch(async batch => batch.map(x => x + 1), { batchSize: 2 });
@@ -271,7 +262,7 @@ describe('Stream', () => {
     });
 
     test('preserves configuration through chains', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5], { concurrency: 2 });
+      const stream = Stream([1, 2, 3, 4, 5], { concurrency: 2 });
       const results = await stream
         .map(async x => x * 2, { concurrency: 3 }) // Override concurrency
         .map(async x => x + 1); // Should use stream's default concurrency
@@ -282,30 +273,30 @@ describe('Stream', () => {
 
   describe('Promise integration', () => {
     test('can be awaited directly', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const results = await stream;
       expect(results).toEqual([1, 2, 3]);
     });
 
     test('then method works', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const results = await stream.then(arr => arr.map(x => x * 2));
       expect(results).toEqual([2, 4, 6]);
     });
 
     test('catch method works', async () => {
-      const stream = fromIterable([1, 2, 3]).map(async x => {
+      const stream = Stream([1, 2, 3]).map(async x => {
         if (x === 2) throw new Error('Test error');
         return x;
       });
 
-      await expect(stream.then(x => x)).rejects.toThrow('Test error');
+      expect(stream.then(x => x)).rejects.toThrow('Test error');
     });
   });
 
   describe('async iteration', () => {
     test('can be used with for-await-of', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
       const results: number[] = [];
 
       for await (const item of stream) {
@@ -316,7 +307,7 @@ describe('Stream', () => {
     });
 
     test('async iteration works with transformed stream', async () => {
-      const stream = fromIterable([1, 2, 3]).map(async x => x * 2);
+      const stream = Stream([1, 2, 3]).map(async x => x * 2);
       const results: number[] = [];
 
       for await (const item of stream) {
@@ -329,7 +320,7 @@ describe('Stream', () => {
 
   describe('preserveOrder', () => {
     test('map preserves order when preserveOrder=true', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5]);
+      const stream = Stream([1, 2, 3, 4, 5]);
 
       // Use variable delays to make items complete out of order naturally
       const results = await stream.map(
@@ -348,7 +339,7 @@ describe('Stream', () => {
 
     test('map does not preserve order when preserveOrder=false', async () => {
       // Simple test with only 2 items and extreme delay difference
-      const unorderedResults = await fromIterable([1, 2]).map(
+      const unorderedResults = await Stream([1, 2]).map(
         async x => {
           // First item takes much longer than second
           const delay = x === 1 ? 200 : 10;
@@ -361,7 +352,7 @@ describe('Stream', () => {
       // With preserveOrder=false, second item should finish first
       expect(unorderedResults).toEqual([2, 1]);
 
-      const orderedResults = await fromIterable([1, 2]).map(
+      const orderedResults = await Stream([1, 2]).map(
         async x => {
           // Same delays
           const delay = x === 1 ? 200 : 10;
@@ -376,7 +367,7 @@ describe('Stream', () => {
     });
 
     test('mapBatch preserves order when preserveOrder=true', async () => {
-      const stream = fromIterable([1, 2, 3, 4, 5, 6]);
+      const stream = Stream([1, 2, 3, 4, 5, 6]);
 
       const results = await stream.mapBatch(
         async batch => {
@@ -393,7 +384,7 @@ describe('Stream', () => {
     });
 
     test('mapBatch does not preserve order when preserveOrder=false', async () => {
-      const unorderedResults = await fromIterable([1, 2, 3, 4]).mapBatch(
+      const unorderedResults = await Stream([1, 2, 3, 4]).mapBatch(
         async batch => {
           // First batch [1,2] takes longer, second batch [3,4] is faster
           const delay = batch.includes(1) ? 200 : 10;
@@ -406,7 +397,7 @@ describe('Stream', () => {
       // With preserveOrder=false, second batch should complete first
       expect(unorderedResults).toEqual([3, 4, 1, 2]);
 
-      const orderedResults = await fromIterable([1, 2, 3, 4]).mapBatch(
+      const orderedResults = await Stream([1, 2, 3, 4]).mapBatch(
         async batch => {
           // Same delays
           const delay = batch.includes(1) ? 200 : 10;
@@ -422,7 +413,7 @@ describe('Stream', () => {
 
     test('preserveOrder defaults to false', async () => {
       // Test with simple 2-item case
-      const defaultResults = await fromIterable([1, 2]).map(
+      const defaultResults = await Stream([1, 2]).map(
         async x => {
           const delay = x === 1 ? 200 : 10;
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -434,7 +425,7 @@ describe('Stream', () => {
       // Default should behave like preserveOrder=false
       expect(defaultResults).toEqual([2, 1]);
 
-      const explicitFalseResults = await fromIterable([1, 2]).map(
+      const explicitFalseResults = await Stream([1, 2]).map(
         async x => {
           const delay = x === 1 ? 200 : 10;
           await new Promise(resolve => setTimeout(resolve, delay));
@@ -448,7 +439,7 @@ describe('Stream', () => {
     });
 
     test('preserveOrder works with chained operations', async () => {
-      const stream = fromIterable([1, 2, 3, 4]);
+      const stream = Stream([1, 2, 3, 4]);
 
       const results = await stream
         .map(
@@ -470,7 +461,7 @@ describe('Stream', () => {
     });
 
     test('preserveOrder with single item processes correctly', async () => {
-      const stream = fromIterable([42]);
+      const stream = Stream([42]);
 
       const results = await stream.map(
         async x => {
@@ -484,7 +475,7 @@ describe('Stream', () => {
     });
 
     test('preserveOrder with empty stream', async () => {
-      const stream = fromIterable([]);
+      const stream = Stream([]);
 
       const results = await stream.map(async x => x * 2, {
         preserveOrder: true,
@@ -496,13 +487,13 @@ describe('Stream', () => {
 
   describe('edge cases', () => {
     test('handles very large concurrency', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const results = await stream.map(async x => x * 2, { concurrency: 1000 });
       expect(results).toEqual([2, 4, 6]);
     });
 
     test('handles zero batchSize gracefully', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       // BatchSize of 0 should be treated as 1
       const results = await stream.mapBatch(
         async batch => batch.map(x => x * 2),
@@ -512,7 +503,7 @@ describe('Stream', () => {
     });
 
     test('handles undefined configuration', async () => {
-      const stream = fromIterable([1, 2, 3]);
+      const stream = Stream([1, 2, 3]);
       const results = await stream.map(async x => x * 2, undefined);
       expect(results).toEqual([2, 4, 6]);
     });

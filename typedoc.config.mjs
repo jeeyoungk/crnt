@@ -12,6 +12,7 @@ const config = {
   projectDocuments: ['README.md'],
   alwaysCreateEntryPointModule: false,
   exclude: ['**/*.test.ts', 'node_modules/*', 'docs/*', 'dist/*'],
+  categoryOrder: ['*', 'Other'],
   excludeExternals: true,
   excludePrivate: true,
   excludeProtected: true,
@@ -32,16 +33,19 @@ const config = {
         'https://developer.mozilla.org/en-US/docs/Web/API/AbortSignal',
     },
     typescript: {
+      Iterator:
+        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterator',
+      Iterable:
+        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Iterable',
       AsyncIterator:
         'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator',
       AsyncIterable:
         'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator',
-      Promise:
-        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',
+      // Promise doc is a bit noisy.
+      // Promise: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',
     },
     global: {
-      Promise:
-        'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',
+      // Promise: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',
     },
   },
   tsconfig: 'tsconfig.json',

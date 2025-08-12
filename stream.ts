@@ -16,16 +16,16 @@
  * ## Basic Usage
  *
  * ```typescript
- * import { fromIterable } from './stream';
+ * import { Stream } from './stream';
  *
  * // Simple sequential processing
  * const data = [1, 2, 3, 4, 5];
- * const results = await fromIterable(data)
+ * const results = await Stream(data)
  *   .map(async (x) => x * 2);
  * console.log(results); // [2, 4, 6, 8, 10]
  *
  * // Concurrent processing with batching
- * const results = await fromIterable(data)
+ * const results = await Stream(data)
  *   .mapBatch(async (batch) => {
  *     // Process batch of items concurrently
  *     return Promise.all(batch.map(x => x * 2));
@@ -39,7 +39,7 @@
  *
  * ```typescript
  * // Create a multi-stage processing pipeline
- * const pipeline = fromIterable(data)
+ * const pipeline = Stream(data)
  *   .map(async (item) => {
  *     // Stage 1: Validation
  *     return { ...item, validated: true };
@@ -63,7 +63,7 @@
  *
  * const multibar = new cliProgress.MultiBar({}, cliProgress.Presets.shades_classic);
  *
- * const results = await fromIterable(largeDataset, { multibar })
+ * const results = await Stream(largeDataset, { multibar })
  *   .map(processItem, {
  *     concurrency: 10,
  *     name: "Processing Items"
@@ -86,8 +86,9 @@ import { _makeAbortSignal, type Options } from './common';
 
 /**
  * Configuration options for {@link Stream.map} operations.
+ * @category Stream
  */
-export interface MapConfig {
+export interface MapOption {
   /**
    * Maximum number of concurrent tasks.
    *
@@ -111,9 +112,10 @@ export interface MapConfig {
 }
 
 /**
- * Configuration options for batch operations.
+ * Configuration options for {@link Stream.mapBatch} operations.
+ * @category Stream
  */
-export interface BatchConfig extends MapConfig {
+export interface BatchOption extends MapOption {
   /**
    * Maximum number of items per batch.
    */
@@ -131,13 +133,15 @@ export interface BatchConfig extends MapConfig {
 
 /**
  * Default configuration options that can be applied to all stream operations.
+ * @category Stream
  */
-export interface StreamConfig extends MapConfig, BatchConfig, Options {}
+export interface StreamConfig extends MapOption, BatchOption, Options {}
 
 /**
  * Stream is an abstraction over {@link AsyncIterable} that supports concurrent processing with batching.
  *
  * @template T - The type of items in the stream
+ * @category Stream
  */
 export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
   /**
@@ -154,7 +158,7 @@ export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
    * @example
    * ```typescript
    * // Process items with controlled concurrency
-   * const results = await fromIterable([1, 2, 3, 4, 5])
+   * const results = await Stream([1, 2, 3, 4, 5])
    *   .map(async (x) => {
    *     await delay(100); // Simulate async work
    *     return x * 2;
@@ -162,7 +166,7 @@ export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
    * // Results: [2, 4, 6, 8, 10]
    * ```
    */
-  map<U>(fn: (value: T) => Promise<U>, config?: MapConfig): Stream<U>;
+  map<U>(fn: (value: T) => Promise<U>, config?: MapOption): Stream<U>;
 
   /**
    * Maps a function over batches of items in the stream with controlled concurrency.
@@ -180,7 +184,7 @@ export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
    * @example
    * ```typescript
    * // Process items in batches
-   * const results = await fromIterable([1, 2, 3, 4, 5, 6])
+   * const results = await Stream([1, 2, 3, 4, 5, 6])
    *   .mapBatch(async (batch) => {
    *     // batch is [1, 2, 3] then [4, 5, 6]
    *     console.log('Processing batch:', batch);
@@ -194,7 +198,7 @@ export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
    */
   mapBatch<U>(
     fn: (value: T[]) => Promise<U[]>,
-    config?: BatchConfig
+    config?: BatchOption
   ): Stream<U>;
 
   /**
@@ -203,14 +207,6 @@ export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
    * @returns Promise that resolves to an array containing all items from the stream
    */
   toArray(): Promise<T[]>;
-}
-
-/** Create a new instance of stream. */
-export function newStream<T>(
-  iterable: AsyncIterable<T>,
-  config: StreamConfig = {}
-): Stream<T> {
-  return new DefaultStream(iterable, config);
 }
 
 export class DefaultStream<T> implements Stream<T> {
@@ -229,7 +225,7 @@ export class DefaultStream<T> implements Stream<T> {
     this.signal = _makeAbortSignal(config);
   }
 
-  map<U>(fn: (value: T) => Promise<U>, config?: MapConfig): Stream<U> {
+  map<U>(fn: (value: T) => Promise<U>, config?: MapOption): Stream<U> {
     return this.mapBatch(async batch => Promise.all(batch.map(fn)), {
       ...config,
       batchSize: 1,
@@ -238,7 +234,7 @@ export class DefaultStream<T> implements Stream<T> {
 
   mapBatch<U>(
     fn: (value: T[]) => Promise<U[]>,
-    config?: BatchConfig
+    config?: BatchOption
   ): Stream<U> {
     const concurrency = config?.concurrency ?? this.concurrency ?? 1;
     const batchSize = config?.batchSize ?? this.batchSize ?? 1;
@@ -396,71 +392,48 @@ export class DefaultStream<T> implements Stream<T> {
 }
 
 /**
- * Creates a Stream from an AsyncIterable with optional configuration.
+ * Creates a Stream from a synchronous Iterable or AsyncIterable with optional configuration.
  *
- * This is the primary factory function for creating streams from existing
- * async iterables like async generators, readable streams, or other async iterables.
- *
- * @template T - The type of items in the iterable
- * @param iterable - Any AsyncIterable to wrap as a Stream
- * @param config - Optional default configuration for all operations on this stream
- * @returns A new Stream instance
- *
- * @example
- * ```typescript
- * // From an async generator
- * async function* generateNumbers() {
- *   for (let i = 0; i < 100; i++) {
- *     await delay(10);
- *     yield i;
- *   }
- * }
- *
- * const stream = fromAsyncIterable(generateNumbers(), {
- *   concurrency: 5,
- *   multibar: progressBar
- * });
- *
- * const results = await stream.map(processNumber);
- * ```
- */
-export function fromAsyncIterable<T>(
-  iterable: AsyncIterable<T>,
-  config?: StreamConfig
-): Stream<T> {
-  return new DefaultStream<T>(iterable, config);
-}
-
-/**
- * Creates a Stream from a regular (synchronous) Iterable with optional configuration.
- *
- * This function wraps synchronous iterables like arrays, sets, or custom iterables
- * and converts them to async streams for concurrent processing.
+ * This function wraps both synchronous iterables (arrays, sets, etc.) and asynchronous
+ * iterables (async generators, etc.) and converts them to streams for concurrent processing.
  *
  * @template T - The type of items in the iterable
- * @param iterable - Any Iterable (like Array, Set, Map, etc.) to wrap as a Stream
+ * @param iterable - Any Iterable or AsyncIterable to wrap as a Stream
  * @param config - Optional default configuration for all operations on this stream
  * @returns A new Stream instance
+ * @category Stream
  *
  * @example
  * ```typescript
  * // From an array
  * const numbers = [1, 2, 3, 4, 5];
- * const stream = fromIterable(numbers, {
+ * const stream = Stream(numbers, {
  *   concurrency: 3,
  *   batchSize: 2
  * });
  *
  * // From a Set
  * const uniqueItems = new Set(['a', 'b', 'c']);
- * const results = await fromIterable(uniqueItems)
+ * const results = await Stream(uniqueItems)
  *   .map(async item => item.toUpperCase());
+ *
+ * // From an async generator
+ * async function* generateData() {
+ *   for (let i = 0; i < 100; i++) {
+ *     yield i;
+ *   }
+ * }
+ * const asyncStream = Stream(generateData());
  * ```
  */
-export function fromIterable<T>(
-  iterable: Iterable<T>,
+// eslint-disable-next-line no-redeclare
+export function Stream<T>(
+  iterable: Iterable<T> | AsyncIterable<T>,
   config?: StreamConfig
 ): Stream<T> {
+  if (isAsyncIterable(iterable)) {
+    return new DefaultStream<T>(iterable, config);
+  }
   return new DefaultStream<T>(toAsyncIterable(iterable), config);
 }
 
@@ -503,4 +476,14 @@ function toAsyncIterable<T, TReturn = unknown, TNext = unknown>(
       return response;
     },
   };
+}
+
+function isAsyncIterable(
+  iterable: unknown
+): iterable is AsyncIterable<unknown> {
+  return (
+    typeof iterable === 'object' &&
+    iterable !== null &&
+    Symbol.asyncIterator in iterable
+  );
 }

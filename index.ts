@@ -14,14 +14,10 @@ export {
   isResolved,
 } from './common';
 export {
-  fromAsyncIterable,
-  fromIterable,
-  type Stream,
+  Stream,
   type StreamConfig,
-  type MapConfig,
-  type BatchConfig,
-  newStream,
-  DefaultStream,
+  type MapOption,
+  type BatchOption,
 } from './stream';
 export { toBufferedAsyncIterable } from './concurrent-iterator';
 export { abortSignalPromise, raceWithAbort, sleep } from './abort';

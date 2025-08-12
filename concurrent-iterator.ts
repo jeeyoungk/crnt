@@ -133,7 +133,7 @@ export function toBufferedAsyncIterable<T>(
  *
  * ```typescript
  * import * as cliProgress from 'cli-progress';
- * import { fromAsyncIterable } from './stream';
+ * import { Stream } from './stream';
  *
  * async function* fetchUsersFromDB() {
  *   const db = await connectToDatabase();
@@ -153,7 +153,7 @@ export function toBufferedAsyncIterable<T>(
  *
  * const multibar = new cliProgress.MultiBar({});
  *
- * const processedUsers = await fromAsyncIterable(fetchUsersFromDB(), { multibar })
+ * const processedUsers = await Stream(fetchUsersFromDB(), { multibar })
  *   .map(async (user) => {
  *     // Validate user data
  *     return validateUser(user);
@@ -174,7 +174,7 @@ export function toBufferedAsyncIterable<T>(
  * ### File Processing Pipeline
  *
  * ```typescript
- * import { fromAsyncIterable } from './stream';
+ * import { Stream } from './stream';
  * import { readdir } from 'fs/promises';
  *
  * async function* findFiles(directory: string, pattern: RegExp) {
@@ -186,7 +186,7 @@ export function toBufferedAsyncIterable<T>(
  *   }
  * }
  *
- * const results = await fromAsyncIterable(findFiles('./data', /\.json$/))
+ * const results = await Stream(findFiles('./data', /\.json$/))
  *   .map(async (filePath) => {
  *     const content = await fs.readFile(filePath, 'utf8');
  *     return { filePath, data: JSON.parse(content) };
@@ -200,7 +200,7 @@ export function toBufferedAsyncIterable<T>(
  * ### API Processing with Rate Limiting and Retries
  *
  * ```typescript
- * import { fromIterable } from './stream';
+ * import { Stream } from './stream';
  *
  * async function fetchWithRetry(url: string, maxRetries = 3): Promise<any> {
  *   for (let i = 0; i < maxRetries; i++) {
@@ -217,7 +217,7 @@ export function toBufferedAsyncIterable<T>(
  *
  * const urls = ['https://api1.com/data', 'https://api2.com/data', ...];
  *
- * const apiResults = await fromIterable(urls)
+ * const apiResults = await Stream(urls)
  *   .map(fetchWithRetry, {
  *     concurrency: 3, // Rate limit: max 3 concurrent requests
  *     name: "🌐 API Calls"
@@ -235,7 +235,7 @@ export function toBufferedAsyncIterable<T>(
  * ### Stream Cancellation
  *
  * ```typescript
- * import { fromIterable } from './stream';
+ * import { Stream } from './stream';
  *
  * const controller = new AbortController();
  *
@@ -243,7 +243,7 @@ export function toBufferedAsyncIterable<T>(
  * setTimeout(() => controller.abort(), 30000);
  *
  * try {
- *   const results = await fromIterable(largeDataset, {
+ *   const results = await Stream(largeDataset, {
  *     signal: controller.signal
  *   })
  *     .map(processItem, { concurrency: 5 });
@@ -265,7 +265,7 @@ export function toBufferedAsyncIterable<T>(
  *   }
  * }
  *
- * const processedCount = await fromAsyncIterable(generateLargeDataset())
+ * const processedCount = await Stream(generateLargeDataset())
  *   .mapBatch(async (batch) => {
  *     // Process in chunks to manage memory
  *     const processed = await heavyComputation(batch);
@@ -284,7 +284,7 @@ export function toBufferedAsyncIterable<T>(
  * ### Buffered Async Iterable for Smooth Data Flow
  *
  * ```typescript
- * import { toBufferedAsyncIterable, fromAsyncIterable } from './stream';
+ * import { toBufferedAsyncIterable, Stream } from './stream';
  *
  * // Simulate irregular data source (network, database, etc.)
  * async function* irregularDataSource() {
@@ -299,7 +299,7 @@ export function toBufferedAsyncIterable<T>(
  * // Buffer 50 items to smooth out irregular arrivals
  * const bufferedSource = toBufferedAsyncIterable(irregularDataSource(), 50);
  *
- * const results = await fromAsyncIterable(bufferedSource)
+ * const results = await Stream(bufferedSource)
  *   .map(async (item) => {
  *     // Fast processing benefits from buffering
  *     return { ...item, processed: Date.now() };

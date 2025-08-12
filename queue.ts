@@ -2,6 +2,7 @@ import { _makeAbortSignal, type Options } from './common';
 
 /**
  * @category Data Structure
+ * @summary Concurrent queue data structure.
  */
 export interface Queue<T> {
   /** asynchronously enqueue an item, waiting until space becomes available, or throw if aborted */
