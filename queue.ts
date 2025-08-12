@@ -1,6 +1,37 @@
 import { _makeAbortSignal, type Options, QueueClosedError } from './common';
+import { CrntError } from './dist';
 
 /**
+ * An asynchronous queue. This is modelled after:
+ *
+ * - Go's channels.
+ * - Java's `ConcurrentLinkedQueue`
+ *
+ * Supported operations:
+ * - Promise-based `enqueue` and `dequeue` operations
+ * - synchronous `maybeEnqueue` and `maybeDequeue` operations
+ * - `AsyncIterable` to drain the queue.
+ * - closing the queue, preventing further enqueue operations but allowing dequeue until exhausted.
+ * - the queue is unbounded by default but it can be initialized with a finite capacity, including 0. in this case, it behaves like Java's SynchronousQueue / Unbuffered Go Channel.
+ *
+ * @example
+ * ```typescript
+ * import { newQueue } from 'crnt';
+ *
+ * // Create a bounded queue
+ * const queue = newQueue<string>(2);
+ *
+ * // Producer
+ * await queue.enqueue('hello');
+ * await queue.enqueue('world');
+ *
+ * // Consumer using async iteration
+ * for await (const item of queue) {
+ *   console.log(item); // 'hello', 'world'
+ *   if (item === 'world') break;
+ * }
+ * ```
+ *
  * @category Data Structure
  * @summary Concurrent queue data structure.
  */
@@ -13,13 +44,13 @@ export interface Queue<T> extends AsyncIterable<T> {
   maybeEnqueue(item: T): boolean;
   /** synchronously dequeue an item if there is one, or return false */
   maybeDequeue(): [T, true] | [undefined, false];
-  /** Returns the copy of the current items in the queue, in the first-in-first-out (FIFO) order. */
+  /** Returns the copy of the current items in the queue, in the first-in-first-out (FIFO) order. This is mostly useful for debugging. */
   toArray(): T[];
   /** close the queue, preventing further enqueue operations but allowing dequeue until exhausted */
   close(): void;
   /** the number of items in the queue */
   readonly size: number;
-  /** the maximum number of items the queue can hold */
+  /** the maximum number of items the queue can hold, infinity if unbounded. */
   readonly capacity: number;
   /** whether the queue is closed */
   readonly closed: boolean;
@@ -33,6 +64,9 @@ export interface Queue<T> extends AsyncIterable<T> {
  * @category Data Structure
  */
 export function newQueue<T>(capacity: number = Infinity): Queue<T> {
+  if (capacity < 0) {
+    throw new CrntError('Capacity must be non-negative');
+  }
   return new DefaultQueue<T>(capacity);
 }
 
