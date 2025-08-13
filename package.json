@@ -7,9 +7,14 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "files": [
@@ -21,9 +26,10 @@
     "test": "bun test",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
-    "format": "prettier --write . --cache",
-    "format:check": "prettier --check . --cache",
-    "check": "bun run lint && bun run format:check && bun run typecheck",
+    "format": "prettier --check . --cache",
+    "format:fix": "prettier --write . --cache",
+    "check:attw": "attw --pack .",
+    "check": "bun run lint && bun run format && bun run typecheck && bun run tsup && bun run check:attw",
     "docs": "typedoc",
     "semantic-release": "semantic-release"
   },
@@ -44,6 +50,7 @@
     "url": "https://github.com/jeeyoungk/crnt/issues"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.2",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.4",
