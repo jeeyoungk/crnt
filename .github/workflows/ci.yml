@@ -24,7 +24,7 @@ jobs:
         run: bun install
       - name: Check code formatting
         if: steps.install.conclusion == 'success'
-        run: bun run format:check
+        run: bun run format
       - name: Run linting
         if: steps.install.conclusion == 'success'
         run: bun run lint
@@ -34,6 +34,9 @@ jobs:
       - name: Build package
         if: steps.install.conclusion == 'success'
         run: bun run tsup
+      - name: Check package exports
+        if: steps.install.conclusion == 'success'
+        run: bun run check:attw
       - name: Run tests
         if: steps.install.conclusion == 'success'
         run: bun test
