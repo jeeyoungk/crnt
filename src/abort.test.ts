@@ -1,11 +1,11 @@
 import { test, expect } from 'bun:test';
-import { abortSignalPromise, raceWithAbort, sleep } from './abort';
+import { abortPromise, abortRace, sleep } from './abort';
 import { withFakeTimers } from './test-helpers';
 
 test('signalToPromise rejects when signal is aborted', async () => {
   await withFakeTimers(async clock => {
     const controller = new AbortController();
-    const signalPromise = abortSignalPromise(controller.signal);
+    const signalPromise = abortPromise(controller.signal);
 
     // Abort after a short delay
     setTimeout(() => controller.abort(), 10);
@@ -19,14 +19,14 @@ test('signalToPromise rejects immediately if signal already aborted', async () =
   const controller = new AbortController();
   controller.abort();
 
-  const signalPromise = abortSignalPromise(controller.signal);
+  const signalPromise = abortPromise(controller.signal);
 
   await expect(signalPromise).rejects.toBeDefined();
 });
 
 test('signalToPromise never resolves for non-aborted signal', async () => {
   const controller = new AbortController();
-  const signalPromise = abortSignalPromise(controller.signal);
+  const signalPromise = abortPromise(controller.signal);
 
   // Race with a timeout to ensure it doesn't resolve
   const timeoutPromise = new Promise(resolve => setTimeout(resolve, 20));
@@ -44,7 +44,7 @@ test('signalToPromise with abort reason', async () => {
   const controller = new AbortController();
   const customReason = new Error('Custom abort reason');
 
-  const signalPromise = abortSignalPromise(controller.signal);
+  const signalPromise = abortPromise(controller.signal);
 
   setTimeout(() => controller.abort(customReason), 10);
 
@@ -55,7 +55,7 @@ test('raceWithAbort resolves with promise result', async () => {
   const promise = Promise.resolve('success');
   const controller = new AbortController();
 
-  const result = await raceWithAbort(promise, controller.signal);
+  const result = await abortRace(promise, controller.signal);
   expect(result).toBe('success');
 });
 
@@ -63,7 +63,7 @@ test('raceWithAbort rejects when signal is aborted', async () => {
   const promise = new Promise(resolve => setTimeout(resolve, 100));
   const controller = new AbortController();
 
-  const racePromise = raceWithAbort(promise, controller.signal);
+  const racePromise = abortRace(promise, controller.signal);
 
   // Abort after a short delay
   setTimeout(() => controller.abort(), 10);
@@ -76,7 +76,7 @@ test('raceWithAbort rejects immediately if signal already aborted', async () => 
   const controller = new AbortController();
   controller.abort();
 
-  await expect(raceWithAbort(promise, controller.signal)).rejects.toThrow(
+  await expect(abortRace(promise, controller.signal)).rejects.toThrow(
     'The operation was aborted'
   );
 });

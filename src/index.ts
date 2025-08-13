@@ -19,7 +19,7 @@ export {
   type BatchOption,
 } from './stream';
 export { toBufferedAsyncIterable } from './concurrent-iterator';
-export { abortSignalPromise, raceWithAbort, sleep } from './abort';
+export { abortPromise, abortRace, sleep } from './abort';
 export { parallelMap } from './util';
 
 export { DeterministicPromise } from './promise';
