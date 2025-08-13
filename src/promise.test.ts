@@ -262,7 +262,10 @@ describe('promise', () => {
       const neverResolves = new Promise(() => {});
 
       // Start the race operation
-      const racePromise = DeterministicPromise.race([neverResolves, laterResolve]);
+      const racePromise = DeterministicPromise.race([
+        neverResolves,
+        laterResolve,
+      ]);
 
       // Resolve the second promise after a delay
       setTimeout(() => resolveLater('late resolution'), 10);
