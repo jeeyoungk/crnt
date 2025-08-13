@@ -174,21 +174,21 @@ describe('common', () => {
       expect(promiseMapInternal.size).toBe(1);
     });
 
-    test('returns true for already resolved promise', async () => {
+    test('returns fulfilled for already resolved promise', async () => {
       const promise = Promise.resolve('success');
       const checker = await isResolvedChecker(promise);
-      expect(checker()).toBe(true);
+      expect(checker()).toBe('fulfilled');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns true for already rejected promise', async () => {
+    test('returns rejected for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
       const checker = await isResolvedChecker(promise);
-      expect(checker()).toBe(true);
+      expect(checker()).toBe('rejected');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns true after promise resolves', async () => {
+    test('returns fulfilled after promise resolves', async () => {
       let resolve: (value: string) => void;
       const promise = new Promise<string>(r => {
         resolve = r;
@@ -201,11 +201,11 @@ describe('common', () => {
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
-      expect(checker()).toBe(true);
+      expect(checker()).toBe('fulfilled');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns true after promise rejects', async () => {
+    test('returns rejected after promise rejects', async () => {
       let reject: (error: Error) => void;
       const promise = new Promise<string>((_, r) => {
         reject = r;
@@ -218,7 +218,7 @@ describe('common', () => {
       reject!(new Error('failed'));
       await Promise.resolve(); // Let promise reject
 
-      expect(checker()).toBe(true);
+      expect(checker()).toBe('rejected');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
@@ -235,8 +235,8 @@ describe('common', () => {
       resolve!('success');
       await Promise.resolve();
 
-      expect(checker()).toBe(true);
-      expect(checker()).toBe(true);
+      expect(checker()).toBe('fulfilled');
+      expect(checker()).toBe('fulfilled');
     });
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
@@ -269,21 +269,21 @@ describe('common', () => {
       expect(promiseMapInternal.size).toBe(1);
     });
 
-    test('returns true for already resolved promise', async () => {
+    test('returns fulfilled for already resolved promise', async () => {
       const promise = Promise.resolve('success');
       const result = await isResolved(promise);
-      expect(result).toBe(true);
+      expect(result).toBe('fulfilled');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns true for already rejected promise', async () => {
+    test('returns rejected for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
       const result = await isResolved(promise);
-      expect(result).toBe(true);
+      expect(result).toBe('rejected');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns false then true as promise resolves', async () => {
+    test('returns false then fulfilled as promise resolves', async () => {
       let resolve: (value: string) => void;
       const promise = new Promise<string>(r => {
         resolve = r;
@@ -295,11 +295,11 @@ describe('common', () => {
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
-      expect(await isResolved(promise)).toBe(true);
+      expect(await isResolved(promise)).toBe('fulfilled');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
-    test('returns false then true as promise rejects', async () => {
+    test('returns false then rejected as promise rejects', async () => {
       let reject: (error: Error) => void;
       const promise = new Promise<string>((_, r) => {
         reject = r;
@@ -311,7 +311,7 @@ describe('common', () => {
       reject!(new Error('failed'));
       await Promise.resolve(); // Let promise reject
 
-      expect(await isResolved(promise)).toBe(true);
+      expect(await isResolved(promise)).toBe('rejected');
       expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
     });
 
@@ -322,11 +322,11 @@ describe('common', () => {
       const nullPromise = Promise.resolve(null);
       const undefinedPromise = Promise.resolve(undefined);
 
-      expect(await isResolved(stringPromise)).toBe(true);
-      expect(await isResolved(numberPromise)).toBe(true);
-      expect(await isResolved(objectPromise)).toBe(true);
-      expect(await isResolved(nullPromise)).toBe(true);
-      expect(await isResolved(undefinedPromise)).toBe(true);
+      expect(await isResolved(stringPromise)).toBe('fulfilled');
+      expect(await isResolved(numberPromise)).toBe('fulfilled');
+      expect(await isResolved(objectPromise)).toBe('fulfilled');
+      expect(await isResolved(nullPromise)).toBe('fulfilled');
+      expect(await isResolved(undefinedPromise)).toBe('fulfilled');
     });
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
