@@ -21,10 +21,6 @@
 
 * docs ([fdfada5](https://github.com/jeeyoungk/crnt/commit/fdfada5b68311b08f78bf4a963a805c8f7c47cc5))
 
----
-# typedoc frontmatter
-category: 'none'
----
 ## [0.0.21](https://github.com/jeeyoungk/crnt/compare/v0.0.20...v0.0.21) (2025-08-12)
 
 

@@ -1,4 +1,10 @@
 /**
+ * @categoryDescription Common
+ * Common functions and types.
+ * @module
+ */
+
+/**
  * Base error class for all CRNT (Current) library errors
  */
 export class CrntError extends Error {
@@ -60,10 +66,12 @@ export function _makeAbortSignal(
  * Create a function that checks whether a given promise is resolved or not.
  *
  * Note: the returned function is synchronous, and within the same microtask boundary, it's guaranteed to return the same value.
+ *
+ * @category Promise
  */
 export async function isResolvedChecker(
   promise: Promise<unknown>
-): Promise<() => boolean> {
+): Promise<() => Resolved> {
   const existingState = promiseMapInternal.get(promise);
   if (existingState != null) {
     return existingState.isResolved;
@@ -74,10 +82,14 @@ export async function isResolvedChecker(
   };
   promiseMapInternal.set(promise, state);
   const done = () => {
-    state.resolved = true;
+    state.resolved = 'fulfilled';
     promiseMapInternal.delete(promise);
   };
-  promise.then(done, done);
+  const onrejected = () => {
+    state.resolved = 'rejected';
+    promiseMapInternal.delete(promise);
+  };
+  promise.then(done, onrejected);
   await Promise.resolve(); // microtask
   return state.isResolved;
 }
@@ -85,17 +97,26 @@ export async function isResolvedChecker(
 /**
  * Check whether a promise is resolved or not.
  *
- * Note: if this is repeatedly called over a long-running (or even potentially forever-running) promise,
- * it's recommended to use {@link isResolvedChecker} instead.
+ * The returned promise should be resolved within a microtask boundary.
+ *
+ * @category Promise
+ * @returns
+ * - `false` If the promise is not resolved yet
+ * - `'fulfilled'` If the promise is resolved
+ * - `'rejected'` If the promise is rejected.
  */
-export async function isResolved(promise: Promise<unknown>): Promise<boolean> {
+export async function isResolved(
+  promise: Promise<unknown>
+): Promise<false | 'fulfilled' | 'rejected'> {
   return (await isResolvedChecker(promise))();
 }
 
 type PromiseState = {
-  resolved: boolean;
-  isResolved: () => boolean;
+  resolved: Resolved;
+  isResolved: () => Resolved;
 };
 
 /** track the resolved state of the promises. is used to make isResolvedChecker more efficient. */
 export const promiseMapInternal = new Map<Promise<unknown>, PromiseState>();
+
+export type Resolved = Awaited<ReturnType<typeof isResolved>>;
