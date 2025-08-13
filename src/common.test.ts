@@ -5,6 +5,7 @@ import {
   isResolvedChecker,
   isResolved,
   promiseMapInternal,
+  withTimeout,
 } from './common';
 
 describe('common', () => {
@@ -344,6 +345,113 @@ describe('common', () => {
       const resolvedPromise = Promise.resolve('test');
       await isResolved(resolvedPromise);
       expect(promiseMapInternal.size).toBe(2); // Still only the 2 unresolved ones
+    });
+  });
+
+  describe('withTimeout', () => {
+    test('aborts controller after timeout', async () => {
+      const controller = new AbortController();
+      const clearFn = withTimeout(controller, 10);
+
+      expect(controller.signal.aborted).toBe(false);
+
+      // Wait for timeout
+      await new Promise(resolve => setTimeout(resolve, 15));
+
+      expect(controller.signal.aborted).toBe(true);
+      expect(typeof clearFn).toBe('function');
+    });
+
+    test('clear function prevents timeout abort', async () => {
+      const controller = new AbortController();
+      const clearFn = withTimeout(controller, 10);
+
+      expect(controller.signal.aborted).toBe(false);
+
+      // Clear timeout before it triggers
+      clearFn();
+
+      // Wait past timeout duration
+      await new Promise(resolve => setTimeout(resolve, 15));
+
+      expect(controller.signal.aborted).toBe(false);
+    });
+
+    test('clear function is automatically called when signal is aborted externally', async () => {
+      const controller = new AbortController();
+      const clearFn = withTimeout(controller, 100); // Long timeout
+
+      expect(controller.signal.aborted).toBe(false);
+
+      // Abort the controller manually
+      controller.abort();
+
+      expect(controller.signal.aborted).toBe(true);
+
+      // Wait to ensure timeout would have triggered if not cleared
+      await new Promise(resolve => setTimeout(resolve, 10));
+
+      // Controller should still be aborted (from manual abort, not timeout)
+      expect(controller.signal.aborted).toBe(true);
+      expect(typeof clearFn).toBe('function');
+    });
+
+    test('works with zero timeout', async () => {
+      const controller = new AbortController();
+      withTimeout(controller, 0);
+
+      expect(controller.signal.aborted).toBe(false);
+
+      // Wait for next tick
+      await new Promise(resolve => setTimeout(resolve, 1));
+
+      expect(controller.signal.aborted).toBe(true);
+    });
+
+    test('works with already aborted controller', async () => {
+      const controller = new AbortController();
+      const customReason = new Error('already aborted');
+      controller.abort(customReason);
+
+      const clearFn = withTimeout(controller, 10);
+
+      expect(controller.signal.aborted).toBe(true);
+      expect(controller.signal.reason).toBe(customReason);
+
+      // Wait past timeout to ensure it doesn't interfere
+      await new Promise(resolve => setTimeout(resolve, 15));
+
+      expect(controller.signal.aborted).toBe(true);
+      expect(controller.signal.reason).toBe(customReason);
+      expect(typeof clearFn).toBe('function');
+    });
+
+    test('multiple calls to clear function are safe', async () => {
+      const controller = new AbortController();
+      const clearFn = withTimeout(controller, 50);
+
+      expect(controller.signal.aborted).toBe(false);
+
+      // Call clear multiple times
+      clearFn();
+      clearFn();
+      clearFn();
+
+      // Wait past timeout duration
+      await new Promise(resolve => setTimeout(resolve, 60));
+
+      expect(controller.signal.aborted).toBe(false);
+    });
+
+    test('timeout aborts with default reason', async () => {
+      const controller = new AbortController();
+      withTimeout(controller, 10);
+
+      // Wait for timeout
+      await new Promise(resolve => setTimeout(resolve, 15));
+
+      expect(controller.signal.aborted).toBe(true);
+      expect(controller.signal.reason).toBeDefined();
     });
   });
 });

@@ -52,8 +52,7 @@ describe('promise', () => {
         await DeterministicPromise.all(promises);
         expect.unreachable('Should have rejected');
       } catch (rejectedPromise) {
-        // Should reject with the first promise in array order (slowReject)
-        console.log(rejectedPromise);
+        // should reject fastReject.
         expect(rejectedPromise).toBe(error2);
       }
     });

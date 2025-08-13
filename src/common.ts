@@ -47,14 +47,14 @@ export function _makeAbortSignal(
     return signal;
   }
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  const clear = withTimeout(controller, timeout);
   if (signal == null) {
     return controller.signal;
   }
   signal.addEventListener(
     'abort',
     () => {
-      clearTimeout(timeoutId);
+      clear();
       controller.abort(signal.reason);
     },
     { once: true }
@@ -120,3 +120,18 @@ type PromiseState = {
 export const promiseMapInternal = new Map<Promise<unknown>, PromiseState>();
 
 export type Resolved = Awaited<ReturnType<typeof isResolved>>;
+
+/**
+ * Configure a given abort controller to abort after a given timeout.
+ *
+ * @returns Triggers the timeout.
+ */
+export function withTimeout(
+  ctrl: AbortController,
+  timeout: number
+): () => void {
+  const timeoutId = setTimeout(() => ctrl.abort(), timeout);
+  const clear = () => clearTimeout(timeoutId);
+  ctrl.signal.addEventListener('abort', clear, { once: true });
+  return clear;
+}
