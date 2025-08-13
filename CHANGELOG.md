@@ -1,3 +1,10 @@
+## [0.0.25](https://github.com/jeeyoungk/crnt/compare/v0.0.24...v0.0.25) (2025-08-13)
+
+
+### Features
+
+* all and race ([#3](https://github.com/jeeyoungk/crnt/issues/3)) ([14901b9](https://github.com/jeeyoungk/crnt/commit/14901b93e186ce2e6609e42a8ee948dba19c7dd8))
+
 ## [0.0.24](https://github.com/jeeyoungk/crnt/compare/v0.0.23...v0.0.24) (2025-08-13)
 
 
