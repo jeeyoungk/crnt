@@ -1,6 +1,6 @@
 /** @type {Partial<import("typedoc").TypeDocOptions>} */
 const config = {
-  entryPoints: ['index.ts'],
+  entryPoints: ['src/index.ts'],
   out: 'docs',
   name: 'crnt',
   theme: 'default',
