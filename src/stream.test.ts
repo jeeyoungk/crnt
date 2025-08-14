@@ -341,8 +341,8 @@ describe('Stream', () => {
       // Simple test with only 2 items and extreme delay difference
       const unorderedResults = await newStream([1, 2]).map(
         async x => {
-          // First item takes much longer than second
-          const delay = x === 1 ? 200 : 10;
+          // First item takes much longer than second - reduced from 200ms to 20ms
+          const delay = x === 1 ? 20 : 1;
           await new Promise(resolve => setTimeout(resolve, delay));
           return x;
         },
@@ -355,7 +355,7 @@ describe('Stream', () => {
       const orderedResults = await newStream([1, 2]).map(
         async x => {
           // Same delays
-          const delay = x === 1 ? 200 : 10;
+          const delay = x === 1 ? 20 : 1;
           await new Promise(resolve => setTimeout(resolve, delay));
           return x;
         },
@@ -386,8 +386,8 @@ describe('Stream', () => {
     test('mapBatch does not preserve order when preserveOrder=false', async () => {
       const unorderedResults = await newStream([1, 2, 3, 4]).mapBatch(
         async batch => {
-          // First batch [1,2] takes longer, second batch [3,4] is faster
-          const delay = batch.includes(1) ? 200 : 10;
+          // First batch [1,2] takes longer, second batch [3,4] is faster - reduced from 200ms to 20ms
+          const delay = batch.includes(1) ? 20 : 1;
           await new Promise(resolve => setTimeout(resolve, delay));
           return batch;
         },
@@ -400,7 +400,7 @@ describe('Stream', () => {
       const orderedResults = await newStream([1, 2, 3, 4]).mapBatch(
         async batch => {
           // Same delays
-          const delay = batch.includes(1) ? 200 : 10;
+          const delay = batch.includes(1) ? 20 : 1;
           await new Promise(resolve => setTimeout(resolve, delay));
           return batch;
         },
@@ -415,7 +415,7 @@ describe('Stream', () => {
       // Test with simple 2-item case
       const defaultResults = await newStream([1, 2]).map(
         async x => {
-          const delay = x === 1 ? 200 : 10;
+          const delay = x === 1 ? 20 : 1; // reduced from 200ms to 20ms
           await new Promise(resolve => setTimeout(resolve, delay));
           return x;
         },
@@ -427,7 +427,7 @@ describe('Stream', () => {
 
       const explicitFalseResults = await newStream([1, 2]).map(
         async x => {
-          const delay = x === 1 ? 200 : 10;
+          const delay = x === 1 ? 20 : 1;
           await new Promise(resolve => setTimeout(resolve, delay));
           return x;
         },
