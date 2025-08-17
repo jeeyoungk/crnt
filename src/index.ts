@@ -13,7 +13,7 @@ export {
   asyncDisposeSymbol,
   type Disposable,
   type AsyncDisposable,
-} from './resource-management-polyfill';
+} from './polyfill-explicit-resource-management';
 export { newQueue, type Queue } from './queue';
 export {
   type Options,

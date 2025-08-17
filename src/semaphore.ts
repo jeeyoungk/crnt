@@ -1,5 +1,5 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
-import { disposeSymbol } from './resource-management-polyfill';
+import { disposeSymbol } from './polyfill-explicit-resource-management';
 import { withResolvers } from './test-helpers';
 
 /**

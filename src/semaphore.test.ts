@@ -5,7 +5,7 @@ import { withFakeTimers, expectAbortError } from './test-helpers';
 import {
   disposeSymbol,
   asyncDisposeSymbol,
-} from './resource-management-polyfill';
+} from './polyfill-explicit-resource-management';
 import './test-helpers'; // Import withResolvers utility
 
 test('Semaphore allows immediate acquisition when permits are available', async () => {
