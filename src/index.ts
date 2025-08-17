@@ -11,8 +11,8 @@ export {
 export {
   disposeSymbol,
   asyncDisposeSymbol,
-  type Disposable as CrntDisposable,
-  type AsyncDisposable as CrntAsyncDisposable,
+  type Disposable,
+  type AsyncDisposable,
 } from './resource-management-polyfill';
 export { newQueue, type Queue } from './queue';
 export {
