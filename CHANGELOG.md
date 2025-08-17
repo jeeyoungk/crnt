@@ -1,3 +1,10 @@
+## [0.0.28](https://github.com/jeeyoungk/crnt/compare/v0.0.27...v0.0.28) (2025-08-17)
+
+
+### Features
+
+* Resource Manager support, bun optimization. ([#5](https://github.com/jeeyoungk/crnt/issues/5)) ([ce15af5](https://github.com/jeeyoungk/crnt/commit/ce15af540cc0e2d9938de9c1431aad4c7bd33091))
+
 ## [0.0.27](https://github.com/jeeyoungk/crnt/compare/v0.0.26...v0.0.27) (2025-08-17)
 
 
