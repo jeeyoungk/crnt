@@ -36,30 +36,32 @@ test('Semaphore blocks when no permits are available', async () => {
 });
 
 test('Semaphore maintains FIFO order for waiting operations', async () => {
-  const semaphore = new DefaultSemaphore(1);
-  const results: number[] = [];
+  await withFakeTimers(async () => {
+    const semaphore = new DefaultSemaphore(1);
+    const results: number[] = [];
 
-  // Acquire the only permit
-  await semaphore.acquire();
+    // Acquire the only permit
+    await semaphore.acquire();
 
-  // Queue multiple operations
-  const promises = [
-    semaphore.acquire().then(() => results.push(1)),
-    semaphore.acquire().then(() => results.push(2)),
-    semaphore.acquire().then(() => results.push(3)),
-  ];
+    // Queue multiple operations
+    const promises = [
+      semaphore.acquire().then(() => results.push(1)),
+      semaphore.acquire().then(() => results.push(2)),
+      semaphore.acquire().then(() => results.push(3)),
+    ];
 
-  // Release permits one by one
-  semaphore.release();
-  await new Promise(resolve => setTimeout(resolve, 1));
+    // Release permits one by one
+    semaphore.release();
+    await new Promise(resolve => setTimeout(resolve, 1));
 
-  semaphore.release();
-  await new Promise(resolve => setTimeout(resolve, 1));
+    semaphore.release();
+    await new Promise(resolve => setTimeout(resolve, 1));
 
-  semaphore.release();
-  await Promise.all(promises);
+    semaphore.release();
+    await Promise.all(promises);
 
-  expect(results).toEqual([1, 2, 3]);
+    expect(results).toEqual([1, 2, 3]);
+  });
 });
 
 test('Semaphore handles concurrent acquire and release operations', async () => {
@@ -117,27 +119,29 @@ test('Semaphore handles rapid acquire/release cycles', async () => {
 });
 
 test('Semaphore maintains correct permit count under stress', async () => {
-  const semaphore = new DefaultSemaphore(5);
-  let activeOperations = 0;
-  let maxConcurrent = 0;
+  await withFakeTimers(async () => {
+    const semaphore = new DefaultSemaphore(5);
+    let activeOperations = 0;
+    let maxConcurrent = 0;
 
-  const operations = Array.from({ length: 20 }, async () => {
-    await semaphore.acquire();
-    activeOperations++;
-    maxConcurrent = Math.max(maxConcurrent, activeOperations);
+    const operations = Array.from({ length: 20 }, async () => {
+      await semaphore.acquire();
+      activeOperations++;
+      maxConcurrent = Math.max(maxConcurrent, activeOperations);
 
-    // Simulate work with deterministic timing
-    await new Promise(resolve => setTimeout(resolve, 5));
+      // Simulate work with deterministic timing
+      await new Promise(resolve => setTimeout(resolve, 5));
 
-    activeOperations--;
-    semaphore.release();
+      activeOperations--;
+      semaphore.release();
+    });
+
+    await Promise.all(operations);
+
+    // Should never exceed the semaphore limit
+    expect(maxConcurrent).toBeLessThanOrEqual(5);
+    expect(activeOperations).toBe(0);
   });
-
-  await Promise.all(operations);
-
-  // Should never exceed the semaphore limit
-  expect(maxConcurrent).toBeLessThanOrEqual(5);
-  expect(activeOperations).toBe(0);
 });
 
 test('Semaphore throws CrntError when releasing more permits than initial count', () => {
@@ -384,60 +388,61 @@ test('Semaphore.run releases permit even when function throws', async () => {
 });
 
 test('Semaphore.run handles multiple concurrent operations', async () => {
-  const semaphore = new DefaultSemaphore(2);
-  const results: number[] = [];
-  let activeOperations = 0;
-  let maxConcurrent = 0;
+  await withFakeTimers(async () => {
+    const semaphore = new DefaultSemaphore(2);
+    const results: number[] = [];
+    let activeOperations = 0;
+    let maxConcurrent = 0;
+    const operations = Array.from({ length: 5 }, (_, i) =>
+      semaphore.run(async () => {
+        activeOperations++;
+        maxConcurrent = Math.max(maxConcurrent, activeOperations);
 
-  const operations = Array.from({ length: 5 }, (_, i) =>
-    semaphore.run(async () => {
-      activeOperations++;
-      maxConcurrent = Math.max(maxConcurrent, activeOperations);
+        // Simulate work
+        await new Promise(resolve => setTimeout(resolve, 10));
 
-      // Simulate work
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      results.push(i);
-      activeOperations--;
-      return i;
-    })
-  );
-
-  const operationResults = await Promise.all(operations);
-
-  expect(maxConcurrent).toBeLessThanOrEqual(2);
-  expect(operationResults).toEqual([0, 1, 2, 3, 4]);
-  expect(results).toHaveLength(5);
+        results.push(i);
+        activeOperations--;
+        return i;
+      })
+    );
+    const operationResults = await Promise.all(operations);
+    expect(maxConcurrent).toBeLessThanOrEqual(2);
+    expect(operationResults).toEqual([0, 1, 2, 3, 4]);
+    expect(results).toHaveLength(5);
+  });
 });
 
 test('Semaphore.run can be aborted with AbortSignal', async () => {
-  const semaphore = new DefaultSemaphore(1);
-  const controller = new AbortController();
+  await withFakeTimers(async () => {
+    const semaphore = new DefaultSemaphore(1);
+    const controller = new AbortController();
 
-  // Acquire the permit to block the run operation
-  await semaphore.acquire();
+    // Acquire the permit to block the run operation
+    await semaphore.acquire();
 
-  const runPromise = semaphore.run(
-    async () => {
-      return 'should not complete';
-    },
-    { signal: controller.signal }
-  );
+    const runPromise = semaphore.run(
+      async () => {
+        return 'should not complete';
+      },
+      { signal: controller.signal }
+    );
 
-  // Give it a moment to start waiting
-  await new Promise(resolve => setTimeout(resolve, 1));
+    // Give it a moment to start waiting
+    await new Promise(resolve => setTimeout(resolve, 1));
 
-  // Abort the operation
-  controller.abort();
+    // Abort the operation
+    controller.abort();
 
-  await expect(runPromise).rejects.toThrow('The operation was aborted');
+    await expect(runPromise).rejects.toThrow('The operation was aborted');
 
-  // Permit should still be held by the original acquire
-  expect(semaphore.maybeAcquire()).toBe(false);
+    // Permit should still be held by the original acquire
+    expect(semaphore.maybeAcquire()).toBe(false);
 
-  // Release the original permit
-  semaphore.release();
-  expect(semaphore.maybeAcquire()).toBe(true);
+    // Release the original permit
+    semaphore.release();
+    expect(semaphore.maybeAcquire()).toBe(true);
+  });
 });
 
 test('Semaphore.run with already aborted signal throws immediately', async () => {

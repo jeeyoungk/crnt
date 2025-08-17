@@ -69,6 +69,8 @@
     "typedoc": "^0.28.9"
   },
   "peerDependencies": {
+    "@sinonjs/fake-timers": "^14.0.0",
+    "@types/sinonjs__fake-timers": "^8.1.5",
     "typescript": "^5"
   },
   "engines": {
