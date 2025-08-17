@@ -1,7 +1,11 @@
 import { test, expect } from 'bun:test';
-import { DefaultSemaphore } from './semaphore';
+import { DefaultSemaphore, newSemaphore } from './semaphore';
 import { CrntError } from './common';
 import { withFakeTimers, expectAbortError } from './test-helpers';
+import {
+  disposeSymbol,
+  asyncDisposeSymbol,
+} from './resource-management-polyfill';
 import './test-helpers'; // Import withResolvers utility
 
 test('Semaphore allows immediate acquisition when permits are available', async () => {
@@ -460,4 +464,148 @@ test('Semaphore.run with already aborted signal throws immediately', async () =>
 
   // Permit should still be available since function never ran
   expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+// Resource Management Tests
+test('SemaphorePermit supports Symbol.dispose (synchronous disposal)', async () => {
+  const semaphore = newSemaphore(2);
+
+  // Acquire permit
+  const permit = await semaphore.acquirePermit();
+
+  // Verify permit was acquired
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 left
+  expect(semaphore.maybeAcquire()).toBe(false); // 0 left
+
+  // Dispose using disposeSymbol
+  permit[disposeSymbol]!();
+
+  // Verify permit was released
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 available again
+});
+
+test('SemaphorePermit supports Symbol.asyncDispose (asynchronous disposal)', async () => {
+  const semaphore = newSemaphore(2);
+
+  // Acquire permit
+  const permit = await semaphore.acquirePermit();
+
+  // Verify permit was acquired
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 left
+  expect(semaphore.maybeAcquire()).toBe(false); // 0 left
+
+  // Dispose using asyncDisposeSymbol
+  await permit[asyncDisposeSymbol]!();
+
+  // Verify permit was released
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 available again
+});
+
+test('SemaphorePermit can be disposed multiple times safely', async () => {
+  const semaphore = newSemaphore(1);
+  const permit = await semaphore.acquirePermit();
+
+  // First disposal
+  permit[disposeSymbol]!();
+  expect(semaphore.maybeAcquire()).toBe(true);
+  semaphore.release(); // Put it back
+
+  // Second disposal should be safe (no-op)
+  permit[disposeSymbol]!();
+  expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+test('SemaphorePermit works with using declaration syntax', async () => {
+  const semaphore = newSemaphore(2);
+
+  // Simulate using declaration behavior
+  {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    using permit = await semaphore.acquirePermit();
+
+    // Verify permit was acquired - should have 1 left
+    expect(semaphore.maybeAcquire()).toBe(true); // Take the other permit, now 0 left
+    expect(semaphore.maybeAcquire()).toBe(false); // Confirm 0 left
+
+    // Release the manually acquired permit
+    semaphore.release();
+  }
+
+  // After disposal, both permits should be available again
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 available
+  expect(semaphore.maybeAcquire()).toBe(true); // 2nd available
+});
+
+test('SemaphorePermit works with await using declaration syntax', async () => {
+  const semaphore = newSemaphore(2);
+
+  // Simulate await using declaration behavior
+  {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    await using permit = await semaphore.acquirePermit();
+
+    // Verify permit was acquired - should have 1 left
+    expect(semaphore.maybeAcquire()).toBe(true); // Take the other permit, now 0 left
+    expect(semaphore.maybeAcquire()).toBe(false); // Confirm 0 left
+
+    // Release the manually acquired permit
+    semaphore.release();
+  }
+
+  // After disposal, both permits should be available again
+  expect(semaphore.maybeAcquire()).toBe(true); // 1 available
+  expect(semaphore.maybeAcquire()).toBe(true); // 2nd available
+});
+
+test('maybeAcquirePermit returns permit when available', () => {
+  const semaphore = newSemaphore(1);
+
+  const permit = semaphore.maybeAcquirePermit();
+  expect(permit).toBeDefined();
+
+  // Should be none left
+  expect(semaphore.maybeAcquirePermit()).toBeUndefined();
+
+  // Release and try again
+  permit![disposeSymbol]!();
+  expect(semaphore.maybeAcquirePermit()).toBeDefined();
+});
+
+test('maybeAcquirePermit returns undefined when no permits available', () => {
+  const semaphore = newSemaphore(0);
+
+  const permit = semaphore.maybeAcquirePermit();
+  expect(permit).toBeUndefined();
+});
+
+test('Resource management with aborted signal', async () => {
+  const semaphore = newSemaphore(1); // Start with 1 permit
+  const controller = new AbortController();
+
+  // Use up the permit first
+  await semaphore.acquire();
+
+  // Abort immediately
+  controller.abort();
+
+  // Should throw abort error when trying to acquire another permit
+  await expectAbortError(
+    semaphore.acquirePermit({ signal: controller.signal })
+  );
+
+  // Original permit should still be used, so no permits available
+  expect(semaphore.maybeAcquire()).toBe(false);
+
+  // Release the original permit
+  semaphore.release();
+  expect(semaphore.maybeAcquire()).toBe(true);
+});
+
+test('Polyfill symbols are available', () => {
+  // Test that our polyfill correctly defines the symbols
+  expect(typeof disposeSymbol).toBe('symbol');
+  expect(typeof asyncDisposeSymbol).toBe('symbol');
+
+  // Symbols should be unique
+  expect(disposeSymbol).not.toBe(asyncDisposeSymbol);
 });

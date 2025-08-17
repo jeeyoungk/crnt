@@ -3,7 +3,17 @@
  * Concurrent data structures and primitives.
  * @module
  */
-export { newSemaphore, type Semaphore } from './semaphore';
+export {
+  newSemaphore,
+  type Semaphore,
+  type SemaphorePermit,
+} from './semaphore';
+export {
+  disposeSymbol,
+  asyncDisposeSymbol,
+  type Disposable as CrntDisposable,
+  type AsyncDisposable as CrntAsyncDisposable,
+} from './resource-management-polyfill';
 export { newQueue, type Queue } from './queue';
 export {
   type Options,

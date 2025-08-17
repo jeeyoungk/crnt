@@ -1,5 +1,22 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
 import { withResolvers } from './test-helpers';
+import {
+  disposeSymbol,
+  asyncDisposeSymbol,
+} from './resource-management-polyfill';
+
+/**
+ * @category Data Structure
+ * @summary A permit that can be released when no longer needed, supporting TC39 resource management.
+ */
+export interface SemaphorePermit {
+  /** release the permit synchronously */
+  [disposeSymbol](): void;
+  /** release the permit asynchronously */
+  [asyncDisposeSymbol](): Promise<void>;
+  /** release the permit, making it available for other operations */
+  release(): void;
+}
 
 /**
  * @category Data Structure
@@ -8,8 +25,12 @@ import { withResolvers } from './test-helpers';
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
   acquire(options?: Options): Promise<void>;
+  /** asynchronously acquire a permit that supports resource management, waiting until one becomes available, or throw if aborted */
+  acquirePermit(options?: Options): Promise<SemaphorePermit>;
   /** synchronously acquire a permit if one is available, otherwise return false */
   maybeAcquire(): boolean;
+  /** synchronously acquire a permit that supports resource management if one is available, otherwise return undefined */
+  maybeAcquirePermit(): SemaphorePermit | undefined;
   /** release a permit, making it available for other operations */
   release(): void;
   /** run a function with a semaphore, acquiring a permit before running and releasing it after */
@@ -36,6 +57,31 @@ export interface Semaphore {
  */
 export function newSemaphore(permits: number): Semaphore {
   return new DefaultSemaphore(permits);
+}
+
+class DefaultSemaphorePermit implements SemaphorePermit {
+  private semaphore: DefaultSemaphore;
+  private released = false;
+
+  constructor(semaphore: DefaultSemaphore) {
+    this.semaphore = semaphore;
+  }
+
+  [Symbol.dispose](): void {
+    this.release();
+  }
+
+  async [Symbol.asyncDispose](): Promise<void> {
+    this.release();
+  }
+
+  release(): void {
+    if (this.released) {
+      return;
+    }
+    this.released = true;
+    this.semaphore.release();
+  }
 }
 
 export class DefaultSemaphore implements Semaphore {
@@ -83,12 +129,24 @@ export class DefaultSemaphore implements Semaphore {
     return promise;
   }
 
+  async acquirePermit(options?: Options): Promise<SemaphorePermit> {
+    await this.acquire(options);
+    return new DefaultSemaphorePermit(this);
+  }
+
   maybeAcquire(): boolean {
     if (this.permits > 0) {
       this.permits--;
       return true;
     }
     return false;
+  }
+
+  maybeAcquirePermit(): SemaphorePermit | undefined {
+    if (this.maybeAcquire()) {
+      return new DefaultSemaphorePermit(this);
+    }
+    return undefined;
   }
 
   release(): void {

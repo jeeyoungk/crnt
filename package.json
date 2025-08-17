@@ -73,7 +73,7 @@
   "peerDependencies": {
     "@sinonjs/fake-timers": "^14.0.0",
     "@types/sinonjs__fake-timers": "^8.1.5",
-    "typescript": "^5"
+    "typescript": "^6.0.0-dev.20250817"
   },
   "engines": {
     "node": ">=20"
