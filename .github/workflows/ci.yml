@@ -17,6 +17,10 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Install dependencies
         id: install
         run: bun install
@@ -38,6 +42,9 @@ jobs:
       - name: Run tests
         if: steps.install.conclusion == 'success'
         run: bun test
+      - name: Run tests with Vitest
+        if: steps.install.conclusion == 'success'
+        run: npx vitest
       - name: Run Documentation
         if: steps.install.conclusion == 'success'
         run: bun run docs --treatWarningsAsErrors
