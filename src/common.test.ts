@@ -1,3 +1,4 @@
+import type * as Bun from 'bun';
 import { test, expect, describe, afterEach, beforeEach } from 'bun:test';
 import {
   _makeAbortSignal,
@@ -6,7 +7,16 @@ import {
   isResolved,
   promiseMapInternal,
   withTimeout,
+  isBunRuntime,
 } from './common';
+
+// Helper function to check map size based on runtime
+// In Bun: always 0 (uses peek optimization)
+// In other runtimes: actual count (uses manual tracking)
+function expectMapSize(count: number): void {
+  const expected = isBunRuntime() ? 0 : count;
+  expect(promiseMapInternal.size).toBe(expected);
+}
 
 describe('common', () => {
   describe('_makeAbortSignal', () => {
@@ -179,14 +189,16 @@ describe('common', () => {
       const promise = Promise.resolve('success');
       const checker = await isResolvedChecker(promise);
       expect(checker()).toBe('fulfilled');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns rejected for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
+      // Handle the rejection to prevent unhandled promise rejection
+      promise.catch(() => {});
       const checker = await isResolvedChecker(promise);
       expect(checker()).toBe('rejected');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns fulfilled after promise resolves', async () => {
@@ -197,13 +209,13 @@ describe('common', () => {
       const checker = await isResolvedChecker(promise);
 
       expect(checker()).toBe(false);
-      expect(promiseMapInternal.size).toBe(1);
+      expectMapSize(1);
 
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
       expect(checker()).toBe('fulfilled');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns rejected after promise rejects', async () => {
@@ -211,16 +223,19 @@ describe('common', () => {
       const promise = new Promise<string>((_, r) => {
         reject = r;
       });
+      // Handle the rejection to prevent unhandled promise rejection
+      promise.catch(() => {});
       const checker = await isResolvedChecker(promise);
 
       expect(checker()).toBe(false);
-      expect(promiseMapInternal.size).toBe(1);
+      expectMapSize(1);
 
-      reject!(new Error('failed'));
+      const error = new Error('failed');
+      reject!(error);
       await Promise.resolve(); // Let promise reject
 
       expect(checker()).toBe('rejected');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('checker function can be called multiple times', async () => {
@@ -241,7 +256,7 @@ describe('common', () => {
     });
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
-      expect(promiseMapInternal.size).toBe(0);
+      expectMapSize(0);
 
       // Test with unresolved promises
       const unresolvedPromise1 = new Promise(() => {});
@@ -249,12 +264,12 @@ describe('common', () => {
 
       await isResolvedChecker(unresolvedPromise1);
       await isResolvedChecker(unresolvedPromise2);
-      expect(promiseMapInternal.size).toBe(2);
+      expectMapSize(2);
 
       // Test with resolved promise - should be automatically cleaned up
       const resolvedPromise = Promise.resolve('test');
       await isResolvedChecker(resolvedPromise);
-      expect(promiseMapInternal.size).toBe(2); // Still only the 2 unresolved ones
+      expectMapSize(2); // Still only the 2 unresolved ones
     });
   });
 
@@ -263,28 +278,30 @@ describe('common', () => {
       promiseMapInternal.clear();
     });
     beforeEach(() => {
-      expect(promiseMapInternal.size).toBe(0);
+      expectMapSize(0);
     });
 
     test('returns false for unresolved promise', async () => {
       const promise = new Promise(() => {}); // Never resolves
       const result = await isResolved(promise);
       expect(result).toBe(false);
-      expect(promiseMapInternal.size).toBe(1);
+      expectMapSize(1);
     });
 
     test('returns fulfilled for already resolved promise', async () => {
       const promise = Promise.resolve('success');
       const result = await isResolved(promise);
       expect(result).toBe('fulfilled');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns rejected for already rejected promise', async () => {
       const promise = Promise.reject(new Error('failed'));
+      // Handle the rejection to prevent unhandled promise rejection
+      promise.catch(() => {});
       const result = await isResolved(promise);
       expect(result).toBe('rejected');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns false then fulfilled as promise resolves', async () => {
@@ -294,13 +311,13 @@ describe('common', () => {
       });
 
       expect(await isResolved(promise)).toBe(false);
-      expect(promiseMapInternal.size).toBe(1);
+      expectMapSize(1);
 
       resolve!('success');
       await Promise.resolve(); // Let promise resolve
 
       expect(await isResolved(promise)).toBe('fulfilled');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('returns false then rejected as promise rejects', async () => {
@@ -308,15 +325,18 @@ describe('common', () => {
       const promise = new Promise<string>((_, r) => {
         reject = r;
       });
+      // Handle the rejection to prevent unhandled promise rejection
+      promise.catch(() => {});
 
       expect(await isResolved(promise)).toBe(false);
-      expect(promiseMapInternal.size).toBe(1);
+      expectMapSize(1);
 
-      reject!(new Error('failed'));
+      const error = new Error('failed');
+      reject!(error);
       await Promise.resolve(); // Let promise reject
 
       expect(await isResolved(promise)).toBe('rejected');
-      expect(promiseMapInternal.size).toBe(0); // Should be cleaned up automatically
+      expectMapSize(0); // Should be cleaned up automatically
     });
 
     test('works with different promise types', async () => {
@@ -334,7 +354,7 @@ describe('common', () => {
     });
 
     test('promiseMapInternal tracks unresolved promises and cleans up resolved ones', async () => {
-      expect(promiseMapInternal.size).toBe(0);
+      expectMapSize(0);
 
       // Test with unresolved promises
       const unresolvedPromise1 = new Promise(() => {});
@@ -342,12 +362,12 @@ describe('common', () => {
 
       await isResolved(unresolvedPromise1);
       await isResolved(unresolvedPromise2);
-      expect(promiseMapInternal.size).toBe(2);
+      expectMapSize(2);
 
       // Test with resolved promise - should be automatically cleaned up
       const resolvedPromise = Promise.resolve('test');
       await isResolved(resolvedPromise);
-      expect(promiseMapInternal.size).toBe(2); // Still only the 2 unresolved ones
+      expectMapSize(2); // Still only the 2 unresolved ones
     });
   });
 
@@ -455,6 +475,52 @@ describe('common', () => {
 
       expect(controller.signal.aborted).toBe(true);
       expect(controller.signal.reason).toBeDefined();
+    });
+  });
+
+  describe('Bun runtime detection and peek optimization', () => {
+    test('should handle Bun peek availability gracefully', async () => {
+      // Check if Bun's peek.status is available
+      const bunPeek = (globalThis as { Bun?: typeof Bun }).Bun?.peek;
+      const hasPeekStatus = bunPeek && typeof bunPeek.status === 'function';
+
+      if (hasPeekStatus) {
+        // Test the peek.status method works if available
+        const promise = Promise.resolve('test');
+        const status = bunPeek.status(promise);
+        expect(['pending', 'fulfilled', 'rejected']).toContain(status);
+      }
+    });
+
+    test('isResolved should work correctly with Bun peek optimization', async () => {
+      // Test with resolved promise
+      const resolvedPromise = Promise.resolve('test');
+      const result = await isResolved(resolvedPromise);
+      expect(result).toBe('fulfilled');
+
+      // Test with rejected promise
+      const rejectedPromise = Promise.reject(new Error('test'));
+      // Handle the rejection to prevent unhandled promise rejection
+      rejectedPromise.catch(() => {});
+      const result2 = await isResolved(rejectedPromise);
+      expect(result2).toBe('rejected');
+
+      // Test with pending promise
+      const pendingPromise = new Promise(() => {}); // Never resolves
+      const result3 = await isResolved(pendingPromise);
+      expect(result3).toBe(false);
+    });
+
+    test('isResolvedChecker should work correctly with Bun peek optimization', async () => {
+      // Test with resolved promise
+      const resolvedPromise = Promise.resolve('test');
+      const checker = await isResolvedChecker(resolvedPromise);
+      expect(checker()).toBe('fulfilled');
+
+      // Test with pending promise
+      const pendingPromise = new Promise(() => {}); // Never resolves
+      const checker2 = await isResolvedChecker(pendingPromise);
+      expect(checker2()).toBe(false);
     });
   });
 });
