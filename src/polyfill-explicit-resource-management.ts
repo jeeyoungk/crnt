@@ -37,5 +37,3 @@ export interface Disposable {
 export interface AsyncDisposable {
   [asyncDisposeSymbol](): PromiseLike<void>;
 }
-
-export {};
