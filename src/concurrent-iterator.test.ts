@@ -1,5 +1,6 @@
 import { test, expect, describe } from 'bun:test';
 import { toBufferedAsyncIterable } from './concurrent-iterator';
+import './test-helpers'; // Import withResolvers utility
 
 // Helper function to create an async iterable from an array with optional delays
 async function* createAsyncIterable<T>(

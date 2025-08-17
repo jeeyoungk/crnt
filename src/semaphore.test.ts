@@ -1,7 +1,8 @@
 import { test, expect } from 'bun:test';
 import { DefaultSemaphore } from './semaphore';
 import { CrntError } from './common';
-import { withFakeTimers } from './test-helpers';
+import { withFakeTimers, expectAbortError } from './test-helpers';
+import './test-helpers'; // Import withResolvers utility
 
 test('Semaphore allows immediate acquisition when permits are available', async () => {
   const semaphore = new DefaultSemaphore(2);
@@ -202,9 +203,7 @@ test('Semaphore acquire with already aborted AbortSignal throws immediately', as
   const controller = new AbortController();
   controller.abort();
 
-  await expect(
-    semaphore.acquire({ signal: controller.signal })
-  ).rejects.toThrow('The operation was aborted');
+  await expectAbortError(semaphore.acquire({ signal: controller.signal }));
 });
 
 test('Semaphore acquire can be aborted while waiting', async () => {
@@ -224,7 +223,7 @@ test('Semaphore acquire can be aborted while waiting', async () => {
   controller.abort();
 
   // Should reject with abort error
-  await expect(acquirePromise).rejects.toThrow('The operation was aborted');
+  await expectAbortError(acquirePromise);
 });
 
 test('Semaphore cleans up aborted operations from waiting queue', async () => {
@@ -246,7 +245,7 @@ test('Semaphore cleans up aborted operations from waiting queue', async () => {
   controller1.abort();
 
   // First should be rejected
-  await expect(acquire1).rejects.toThrow('The operation was aborted');
+  await expectAbortError(acquire1);
 
   // Release the permit - should go to the second waiter
   semaphore.release();
@@ -434,7 +433,7 @@ test('Semaphore.run can be aborted with AbortSignal', async () => {
     // Abort the operation
     controller.abort();
 
-    await expect(runPromise).rejects.toThrow('The operation was aborted');
+    await expectAbortError(runPromise);
 
     // Permit should still be held by the original acquire
     expect(semaphore.maybeAcquire()).toBe(false);
@@ -450,14 +449,14 @@ test('Semaphore.run with already aborted signal throws immediately', async () =>
   const controller = new AbortController();
   controller.abort();
 
-  await expect(
+  await expectAbortError(
     semaphore.run(
       async () => {
         return 'should not execute';
       },
       { signal: controller.signal }
     )
-  ).rejects.toThrow('The operation was aborted');
+  );
 
   // Permit should still be available since function never ran
   expect(semaphore.maybeAcquire()).toBe(true);

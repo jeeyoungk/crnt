@@ -2,6 +2,7 @@ import { test, expect, describe } from 'bun:test';
 import { DefaultQueue } from './queue';
 import { withFakeTimers } from './test-helpers';
 import { QueueClosedError, type Options } from './common';
+import './test-helpers'; // Import withResolvers utility
 
 test('Queue allows immediate enqueue/dequeue when capacity available', async () => {
   const queue = new DefaultQueue<number>(3);

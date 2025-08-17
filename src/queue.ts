@@ -4,6 +4,7 @@ import {
   QueueClosedError,
   CrntError,
 } from './common';
+import { withResolvers } from './test-helpers';
 
 /**
  * An asynchronous queue. This is modelled after:
@@ -209,7 +210,7 @@ export class DefaultQueue<T> implements Queue<T> {
       return Promise.resolve();
     }
 
-    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const { promise, resolve, reject } = withResolvers<void>();
     const waitingEntry: EnqueueWaitingEntry<T> = { resolve, reject, item };
     this.#waitingEnqueue.add(waitingEntry);
 
@@ -240,7 +241,7 @@ export class DefaultQueue<T> implements Queue<T> {
       throw new QueueClosedError('Queue is closed and empty');
     }
 
-    const { promise, resolve, reject } = Promise.withResolvers<T>();
+    const { promise, resolve, reject } = withResolvers<T>();
     const waitingEntry: DequeueWaitingEntry<T> = { resolve, reject };
     this.#waitingDequeue.add(waitingEntry);
 

@@ -3,7 +3,7 @@ import { DEADLOCK_ERROR, withFakeTimers } from './test-helpers';
 
 describe('withFakeTimers', () => {
   test('Forever-blocking promise', async () => {
-    expect(
+    await expect(
       withFakeTimers(async () => {
         await new Promise(() => {});
       })

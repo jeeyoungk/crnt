@@ -131,7 +131,7 @@ describe('Stream', () => {
         if (x === 2) throw new Error('Test error');
         return x * 2;
       });
-      expect(mappedStream.toArray()).rejects.toThrow('Test error');
+      await expect(mappedStream.toArray()).rejects.toThrow('Test error');
     });
 
     test('works with empty stream', async () => {
@@ -206,7 +206,7 @@ describe('Stream', () => {
         },
         { batchSize: 2 }
       );
-      expect(batchedStream.toArray()).rejects.toThrow('Batch error');
+      await expect(batchedStream.toArray()).rejects.toThrow('Batch error');
     });
 
     test('works with single item batches', async () => {
@@ -290,7 +290,7 @@ describe('Stream', () => {
         return x;
       });
 
-      expect(stream.then(x => x)).rejects.toThrow('Test error');
+      await expect(stream.then(x => x)).rejects.toThrow('Test error');
     });
   });
 
