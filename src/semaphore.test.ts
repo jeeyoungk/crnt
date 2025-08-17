@@ -12,8 +12,12 @@ test('Semaphore allows immediate acquisition when permits are available', async 
   const semaphore = new DefaultSemaphore(2);
 
   // Should acquire immediately without waiting
-  await semaphore.acquire();
-  await semaphore.acquire();
+  const permit1 = await semaphore.acquire();
+  const permit2 = await semaphore.acquire();
+
+  // Clean up
+  permit1.release();
+  permit2.release();
 });
 
 test('Semaphore blocks when no permits are available', async () => {
@@ -22,11 +26,12 @@ test('Semaphore blocks when no permits are available', async () => {
     let acquired = false;
 
     // First acquisition should succeed immediately
-    await semaphore.acquire();
+    const permit1 = await semaphore.acquire();
 
     // Second acquisition should block
-    const acquirePromise = semaphore.acquire().then(() => {
+    const acquirePromise = semaphore.acquire().then(permit => {
       acquired = true;
+      permit.release(); // Clean up the second permit
     });
 
     // Give a small delay to ensure the acquire() would have completed if it wasn't blocked
@@ -34,7 +39,7 @@ test('Semaphore blocks when no permits are available', async () => {
     expect(acquired).toBe(false);
 
     // Release permit and verify the waiting acquisition completes
-    semaphore.release();
+    permit1.release();
     await acquirePromise;
     expect(acquired).toBe(true);
   });
@@ -46,23 +51,26 @@ test('Semaphore maintains FIFO order for waiting operations', async () => {
     const results: number[] = [];
 
     // Acquire the only permit
-    await semaphore.acquire();
+    const initialPermit = await semaphore.acquire();
 
     // Queue multiple operations
     const promises = [
-      semaphore.acquire().then(() => results.push(1)),
-      semaphore.acquire().then(() => results.push(2)),
-      semaphore.acquire().then(() => results.push(3)),
+      semaphore.acquire().then(permit => {
+        results.push(1);
+        permit.release();
+      }),
+      semaphore.acquire().then(permit => {
+        results.push(2);
+        permit.release();
+      }),
+      semaphore.acquire().then(permit => {
+        results.push(3);
+        permit.release();
+      }),
     ];
 
-    // Release permits one by one
-    semaphore.release();
-    await new Promise(resolve => setTimeout(resolve, 1));
-
-    semaphore.release();
-    await new Promise(resolve => setTimeout(resolve, 1));
-
-    semaphore.release();
+    // Release the initial permit to start the queue
+    initialPermit.release();
     await Promise.all(promises);
 
     expect(results).toEqual([1, 2, 3]);
@@ -254,8 +262,10 @@ test('Semaphore cleans up aborted operations from waiting queue', async () => {
   // Release the permit - should go to the second waiter
   semaphore.release();
 
-  // Second should resolve
-  await expect(acquire2).resolves.toBeUndefined();
+  // Second should resolve to a permit
+  const permit2 = await acquire2;
+  expect(permit2).toBeDefined();
+  permit2.release();
 });
 
 test('Semaphore removes abort listener when operation completes normally', async () => {
@@ -288,58 +298,58 @@ test('maybeAcquire returns true when permits are available', () => {
   const semaphore = new DefaultSemaphore(2);
 
   // Should acquire successfully
-  expect(semaphore.maybeAcquire()).toBe(true);
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('maybeAcquire returns false when no permits are available', () => {
   const semaphore = new DefaultSemaphore(1);
 
   // Acquire the only permit
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 
   // Second attempt should fail
-  expect(semaphore.maybeAcquire()).toBe(false);
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 });
 
 test('maybeAcquire works with release cycle', () => {
   const semaphore = new DefaultSemaphore(1);
 
   // Acquire permit
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 
   // Should fail now
-  expect(semaphore.maybeAcquire()).toBe(false);
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 
   // Release permit
   semaphore.release();
 
   // Should succeed again
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('maybeAcquire does not interfere with async acquire', async () => {
   const semaphore = new DefaultSemaphore(2);
 
   // Mix sync and async acquisition
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
   await semaphore.acquire();
 
   // No more permits available
-  expect(semaphore.maybeAcquire()).toBe(false);
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 
   // Release one permit
   semaphore.release();
 
   // Should be able to acquire again
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('maybeAcquire with zero initial permits always returns false', () => {
   const semaphore = new DefaultSemaphore(0);
 
-  expect(semaphore.maybeAcquire()).toBe(false);
-  expect(semaphore.maybeAcquire()).toBe(false);
+  expect(semaphore.maybeAcquire()).toBeUndefined();
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 });
 
 test('Semaphore.run executes function and returns result', async () => {
@@ -359,9 +369,10 @@ test('Semaphore.run acquires and releases permit correctly', async () => {
   const runPromise = semaphore.run(async () => {
     executionStarted = true;
     // Check if another operation can acquire the permit (should fail)
-    permitAvailable = semaphore.maybeAcquire();
-    if (permitAvailable) {
-      semaphore.release(); // Clean up if we accidentally acquired
+    const extraPermit = semaphore.maybeAcquire();
+    permitAvailable = extraPermit !== undefined;
+    if (extraPermit) {
+      extraPermit.release(); // Clean up if we accidentally acquired
     }
     return 'done';
   });
@@ -373,7 +384,7 @@ test('Semaphore.run acquires and releases permit correctly', async () => {
   expect(result).toBe('done');
 
   // Permit should be available after completion
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('Semaphore.run releases permit even when function throws', async () => {
@@ -387,7 +398,7 @@ test('Semaphore.run releases permit even when function throws', async () => {
   ).rejects.toThrow('test error');
 
   // Permit should be available after error
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('Semaphore.run handles multiple concurrent operations', async () => {
@@ -440,11 +451,11 @@ test('Semaphore.run can be aborted with AbortSignal', async () => {
     await expectAbortError(runPromise);
 
     // Permit should still be held by the original acquire
-    expect(semaphore.maybeAcquire()).toBe(false);
+    expect(semaphore.maybeAcquire()).toBeUndefined();
 
     // Release the original permit
     semaphore.release();
-    expect(semaphore.maybeAcquire()).toBe(true);
+    expect(semaphore.maybeAcquire()).toBeDefined();
   });
 });
 
@@ -463,7 +474,7 @@ test('Semaphore.run with already aborted signal throws immediately', async () =>
   );
 
   // Permit should still be available since function never ran
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 // Resource Management Tests
@@ -471,48 +482,48 @@ test('SemaphorePermit supports Symbol.dispose (synchronous disposal)', async () 
   const semaphore = newSemaphore(2);
 
   // Acquire permit
-  const permit = await semaphore.acquirePermit();
+  const permit = await semaphore.acquire();
 
   // Verify permit was acquired
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 left
-  expect(semaphore.maybeAcquire()).toBe(false); // 0 left
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 left
+  expect(semaphore.maybeAcquire()).toBeUndefined(); // 0 left
 
   // Dispose using disposeSymbol
   permit[disposeSymbol]!();
 
   // Verify permit was released
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 available again
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 available again
 });
 
 test('SemaphorePermit supports Symbol.asyncDispose (asynchronous disposal)', async () => {
   const semaphore = newSemaphore(2);
 
   // Acquire permit
-  const permit = await semaphore.acquirePermit();
+  const permit = await semaphore.acquire();
 
   // Verify permit was acquired
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 left
-  expect(semaphore.maybeAcquire()).toBe(false); // 0 left
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 left
+  expect(semaphore.maybeAcquire()).toBeUndefined(); // 0 left
 
   // Dispose using asyncDisposeSymbol
-  await permit[asyncDisposeSymbol]!();
+  permit[disposeSymbol]();
 
   // Verify permit was released
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 available again
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 available again
 });
 
 test('SemaphorePermit can be disposed multiple times safely', async () => {
   const semaphore = newSemaphore(1);
-  const permit = await semaphore.acquirePermit();
+  const permit = await semaphore.acquire();
 
   // First disposal
   permit[disposeSymbol]!();
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
   semaphore.release(); // Put it back
 
   // Second disposal should be safe (no-op)
   permit[disposeSymbol]!();
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('SemaphorePermit works with using declaration syntax', async () => {
@@ -521,19 +532,20 @@ test('SemaphorePermit works with using declaration syntax', async () => {
   // Simulate using declaration behavior
   {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    using permit = await semaphore.acquirePermit();
+    using permit = await semaphore.acquire();
 
     // Verify permit was acquired - should have 1 left
-    expect(semaphore.maybeAcquire()).toBe(true); // Take the other permit, now 0 left
-    expect(semaphore.maybeAcquire()).toBe(false); // Confirm 0 left
+    const extraPermit = semaphore.maybeAcquire(); // Take the other permit, now 0 left
+    expect(extraPermit).toBeDefined();
+    expect(semaphore.maybeAcquire()).toBeUndefined(); // Confirm 0 left
 
     // Release the manually acquired permit
-    semaphore.release();
+    extraPermit!.release();
   }
 
   // After disposal, both permits should be available again
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 available
-  expect(semaphore.maybeAcquire()).toBe(true); // 2nd available
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 available
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 2nd available
 });
 
 test('SemaphorePermit works with await using declaration syntax', async () => {
@@ -542,39 +554,40 @@ test('SemaphorePermit works with await using declaration syntax', async () => {
   // Simulate await using declaration behavior
   {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    await using permit = await semaphore.acquirePermit();
+    await using permit = await semaphore.acquire();
 
     // Verify permit was acquired - should have 1 left
-    expect(semaphore.maybeAcquire()).toBe(true); // Take the other permit, now 0 left
-    expect(semaphore.maybeAcquire()).toBe(false); // Confirm 0 left
+    const extraPermit = semaphore.maybeAcquire(); // Take the other permit, now 0 left
+    expect(extraPermit).toBeDefined();
+    expect(semaphore.maybeAcquire()).toBeUndefined(); // Confirm 0 left
 
     // Release the manually acquired permit
-    semaphore.release();
+    extraPermit!.release();
   }
 
   // After disposal, both permits should be available again
-  expect(semaphore.maybeAcquire()).toBe(true); // 1 available
-  expect(semaphore.maybeAcquire()).toBe(true); // 2nd available
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 1 available
+  expect(semaphore.maybeAcquire()).toBeDefined(); // 2nd available
 });
 
 test('maybeAcquirePermit returns permit when available', () => {
   const semaphore = newSemaphore(1);
 
-  const permit = semaphore.maybeAcquirePermit();
+  const permit = semaphore.maybeAcquire();
   expect(permit).toBeDefined();
 
   // Should be none left
-  expect(semaphore.maybeAcquirePermit()).toBeUndefined();
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 
   // Release and try again
   permit![disposeSymbol]!();
-  expect(semaphore.maybeAcquirePermit()).toBeDefined();
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('maybeAcquirePermit returns undefined when no permits available', () => {
   const semaphore = newSemaphore(0);
 
-  const permit = semaphore.maybeAcquirePermit();
+  const permit = semaphore.maybeAcquire();
   expect(permit).toBeUndefined();
 });
 
@@ -589,16 +602,14 @@ test('Resource management with aborted signal', async () => {
   controller.abort();
 
   // Should throw abort error when trying to acquire another permit
-  await expectAbortError(
-    semaphore.acquirePermit({ signal: controller.signal })
-  );
+  await expectAbortError(semaphore.acquire({ signal: controller.signal }));
 
   // Original permit should still be used, so no permits available
-  expect(semaphore.maybeAcquire()).toBe(false);
+  expect(semaphore.maybeAcquire()).toBeUndefined();
 
   // Release the original permit
   semaphore.release();
-  expect(semaphore.maybeAcquire()).toBe(true);
+  expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
 test('Polyfill symbols are available', () => {

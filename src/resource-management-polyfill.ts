@@ -24,22 +24,6 @@ export const asyncDisposeSymbol: typeof Symbol.asyncDispose =
     : // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (Symbol.for('Symbol.asyncDispose') as any);
 
-// Global type declarations for TypeScript
-declare global {
-  interface SymbolConstructor {
-    readonly dispose: symbol;
-    readonly asyncDispose: symbol;
-  }
-
-  interface Disposable {
-    [Symbol.dispose](): void;
-  }
-
-  interface AsyncDisposable {
-    [Symbol.asyncDispose](): PromiseLike<void>;
-  }
-}
-
 /**
  * Interface for objects that can be disposed synchronously using our module symbols
  */
