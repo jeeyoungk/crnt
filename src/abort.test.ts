@@ -1,6 +1,6 @@
 import { test, expect } from 'bun:test';
 import { abortPromise, abortRace, sleep } from './abort';
-import { withFakeTimers } from './test-helpers';
+import { withFakeTimers, expectAbortError } from './test-helpers';
 
 test('signalToPromise rejects when signal is aborted', async () => {
   await withFakeTimers(async clock => {
@@ -11,7 +11,7 @@ test('signalToPromise rejects when signal is aborted', async () => {
     setTimeout(() => controller.abort(), 10);
     clock.tick(10);
 
-    await expect(signalPromise).rejects.toThrow('The operation was aborted');
+    await expectAbortError(signalPromise);
   });
 });
 
@@ -68,7 +68,7 @@ test('raceWithAbort rejects when signal is aborted', async () => {
   // Abort after a short delay
   setTimeout(() => controller.abort(), 10);
 
-  await expect(racePromise).rejects.toThrow('The operation was aborted');
+  await expectAbortError(racePromise);
 });
 
 test('raceWithAbort rejects immediately if signal already aborted', async () => {
@@ -76,9 +76,7 @@ test('raceWithAbort rejects immediately if signal already aborted', async () => 
   const controller = new AbortController();
   controller.abort();
 
-  await expect(abortRace(promise, controller.signal)).rejects.toThrow(
-    'The operation was aborted'
-  );
+  await expectAbortError(abortRace(promise, controller.signal));
 });
 
 test('sleep resolves after specified duration', async () => {
@@ -96,14 +94,12 @@ test('sleep rejects when aborted', async () => {
 
   setTimeout(() => controller.abort(), 10);
 
-  await expect(sleepPromise).rejects.toThrow('The operation was aborted');
+  await expectAbortError(sleepPromise);
 });
 
 test('sleep rejects immediately if signal already aborted', async () => {
   const controller = new AbortController();
   controller.abort();
 
-  await expect(sleep(100, controller.signal)).rejects.toThrow(
-    'The operation was aborted'
-  );
+  await expectAbortError(sleep(100, controller.signal));
 });

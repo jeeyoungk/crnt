@@ -1,5 +1,6 @@
 import { test, expect, describe } from 'bun:test';
 import { DeterministicPromise } from './promise';
+import { withResolvers } from './test-helpers';
 
 describe('promise', () => {
   describe('DeterministicPromise.all', () => {
@@ -121,8 +122,8 @@ describe('promise', () => {
       const slowResolve = new Promise(resolve =>
         setTimeout(() => resolve('slow'), 20)
       );
-      const fast1 = Promise.withResolvers();
-      const fast2 = Promise.withResolvers();
+      const fast1 = withResolvers();
+      const fast2 = withResolvers();
       setTimeout(() => {
         fast1.resolve('fast1');
         fast2.resolve('fast2');

@@ -24,6 +24,7 @@
     "tsup": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
+    "test:vitest": "npx vitest",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "format": "prettier --check . --cache",
@@ -66,9 +67,12 @@
     "prettier": "^3.6.2",
     "semantic-release": "^24.2.7",
     "tsup": "^8.5.0",
-    "typedoc": "^0.28.9"
+    "typedoc": "^0.28.9",
+    "vitest": "^3.0.0"
   },
   "peerDependencies": {
+    "@sinonjs/fake-timers": "^14.0.0",
+    "@types/sinonjs__fake-timers": "^8.1.5",
     "typescript": "^5"
   },
   "engines": {

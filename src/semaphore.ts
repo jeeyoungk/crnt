@@ -1,4 +1,5 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
+import { withResolvers } from './test-helpers';
 
 /**
  * @category Data Structure
@@ -59,7 +60,7 @@ export class DefaultSemaphore implements Semaphore {
       return;
     }
 
-    const { promise, resolve, reject } = Promise.withResolvers<void>();
+    const { promise, resolve, reject } = withResolvers<void>();
     const waitingEntry: WaitingEntry = { resolve };
     this.waiting.add(waitingEntry);
 
