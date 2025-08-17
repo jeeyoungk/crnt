@@ -1,3 +1,10 @@
+## [0.0.27](https://github.com/jeeyoungk/crnt/compare/v0.0.26...v0.0.27) (2025-08-17)
+
+
+### Features
+
+* Add timer and vitest ([#4](https://github.com/jeeyoungk/crnt/issues/4)) ([86a8bdd](https://github.com/jeeyoungk/crnt/commit/86a8bddd9d00cb35e20b20e54b26a99c73ea4d31))
+
 ## [0.0.26](https://github.com/jeeyoungk/crnt/compare/v0.0.25...v0.0.26) (2025-08-13)
 
 
