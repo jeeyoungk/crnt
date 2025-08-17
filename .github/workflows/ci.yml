@@ -25,28 +25,28 @@ jobs:
         id: install
         run: bun install
       - name: Check code formatting
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run format
       - name: Run linting
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run lint
       - name: Run type checking
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run typecheck
       - name: Build package
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run tsup
       - name: Check package exports
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run check:attw
       - name: Run tests
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun test
       - name: Run tests with Vitest
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: npx vitest
       - name: Run Documentation
-        if: steps.install.conclusion == 'success'
+        if: always() && steps.install.conclusion == 'success'
         run: bun run docs --treatWarningsAsErrors
 
   release:
@@ -95,11 +95,11 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       # This one needs to be after release, as release changes the version number.
       - name: Generate documentation
-        if: steps.semantic_release.outputs.new_release == 'true'
+        if: always() && steps.semantic_release.outputs.new_release == 'true'
         run: bun run docs
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
-        if: steps.semantic_release.outputs.new_release == 'true'
+        if: always() && steps.semantic_release.outputs.new_release == 'true'
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./docs

@@ -2,13 +2,17 @@ import { install, type InstalledClock } from '@sinonjs/fake-timers';
 import { CrntError, isResolved } from './common';
 
 /**
- * Utility function to create a deferred promise (replacement for Promise.withResolvers)
+ * Utility function to create a deferred promise (uses Promise.withResolvers if available)
  */
 export function withResolvers<T>(): {
   promise: Promise<T>;
   resolve: (value: T | PromiseLike<T>) => void;
   reject: (reason?: unknown) => void;
 } {
+  if (Promise.withResolvers) {
+    return Promise.withResolvers<T>();
+  }
+
   let resolve: (value: T | PromiseLike<T>) => void;
   let reject: (reason?: unknown) => void;
   const promise = new Promise<T>((res, rej) => {

@@ -1,4 +1,4 @@
-import { test, expect, describe, afterEach } from 'bun:test';
+import { test, expect, describe, afterEach, beforeEach } from 'bun:test';
 import {
   _makeAbortSignal,
   type Options,
@@ -261,6 +261,9 @@ describe('common', () => {
   describe('isResolved', () => {
     afterEach(() => {
       promiseMapInternal.clear();
+    });
+    beforeEach(() => {
+      expect(promiseMapInternal.size).toBe(0);
     });
 
     test('returns false for unresolved promise', async () => {
