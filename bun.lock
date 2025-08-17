@@ -21,12 +21,12 @@
         "semantic-release": "^24.2.7",
         "tsup": "^8.5.0",
         "typedoc": "^0.28.9",
+        "typescript": "^5.9.2",
         "vitest": "^3.0.0",
       },
       "peerDependencies": {
         "@sinonjs/fake-timers": "^14.0.0",
         "@types/sinonjs__fake-timers": "^8.1.5",
-        "typescript": "^5",
       },
     },
   },

@@ -1,5 +1,19 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
+import { disposeSymbol } from './polyfill-explicit-resource-management';
 import { withResolvers } from './test-helpers';
+
+/**
+ * @category Data Structure
+ * @summary A permit that can be released when no longer needed, supporting TC39 resource management.
+ */
+export interface SemaphorePermit extends Disposable {
+  /**
+   * release the permit, making it available for other operations.
+   *
+   * This operaiton is idempotent.
+   */
+  release(): void;
+}
 
 /**
  * @category Data Structure
@@ -7,9 +21,9 @@ import { withResolvers } from './test-helpers';
  */
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
-  acquire(options?: Options): Promise<void>;
-  /** synchronously acquire a permit if one is available, otherwise return false */
-  maybeAcquire(): boolean;
+  acquire(options?: Options): Promise<SemaphorePermit>;
+  /** synchronously acquire a permit if one is available, otherwise return undefined */
+  maybeAcquire(): SemaphorePermit | undefined;
   /** release a permit, making it available for other operations */
   release(): void;
   /** run a function with a semaphore, acquiring a permit before running and releasing it after */
@@ -27,15 +41,50 @@ export interface Semaphore {
  * ```typescript
  * const semaphore = newSemaphore(2);
  *
- * // Limit concurrent operations to 2
+ * // Acquire a permit manually
+ * const permit = await semaphore.acquire();
+ * try {
+ *   // Critical section - permit is automatically managed
+ *   await fetch('/api/data');
+ * } finally {
+ *   permit.release();
+ * }
+ *
+ * // Or use with automatic resource management
+ * await using permit = await semaphore.acquire();
+ * // Critical section - permit automatically released at end of scope
+ * await fetch('/api/data');
+ *
+ * // Or use the run helper
  * await semaphore.run(async () => {
- *   // Critical section - only 2 operations can run simultaneously
+ *   // Critical section - permit automatically managed
  *   return await fetch('/api/data');
  * });
  * ```
  */
 export function newSemaphore(permits: number): Semaphore {
   return new DefaultSemaphore(permits);
+}
+
+class DefaultSemaphorePermit implements SemaphorePermit {
+  private semaphore: DefaultSemaphore;
+  private released = false;
+
+  constructor(semaphore: DefaultSemaphore) {
+    this.semaphore = semaphore;
+  }
+
+  [disposeSymbol](): void {
+    this.release();
+  }
+
+  release(): void {
+    if (this.released) {
+      return;
+    }
+    this.released = true;
+    this.semaphore.release();
+  }
 }
 
 export class DefaultSemaphore implements Semaphore {
@@ -50,14 +99,14 @@ export class DefaultSemaphore implements Semaphore {
     this.maxPermits = permits;
   }
 
-  async acquire(options?: Options): Promise<void> {
+  async acquire(options?: Options): Promise<SemaphorePermit> {
     const signal = _makeAbortSignal(options);
 
     signal?.throwIfAborted();
 
     if (this.permits > 0) {
       this.permits--;
-      return;
+      return new DefaultSemaphorePermit(this);
     }
 
     const { promise, resolve, reject } = withResolvers<void>();
@@ -80,15 +129,16 @@ export class DefaultSemaphore implements Semaphore {
       };
     }
 
-    return promise;
+    await promise;
+    return new DefaultSemaphorePermit(this);
   }
 
-  maybeAcquire(): boolean {
+  maybeAcquire(): SemaphorePermit | undefined {
     if (this.permits > 0) {
       this.permits--;
-      return true;
+      return new DefaultSemaphorePermit(this);
     }
-    return false;
+    return undefined;
   }
 
   release(): void {
@@ -107,11 +157,11 @@ export class DefaultSemaphore implements Semaphore {
   }
 
   async run<T>(fn: () => Promise<T>, options?: Options): Promise<T> {
-    await this.acquire(options);
+    const permit = await this.acquire(options);
     try {
       return await fn();
     } finally {
-      this.release();
+      permit.release();
     }
   }
 }

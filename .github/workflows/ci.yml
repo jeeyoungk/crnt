@@ -17,10 +17,11 @@ jobs:
         uses: oven-sh/setup-bun@v1
         with:
           bun-version: latest
-      - name: Setup Node.js
+      - # we use bun for everything, but test against node to ensure that it is working.
+        name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 20 # minimum version supported by our library.
       - name: Install dependencies
         id: install
         run: bun install

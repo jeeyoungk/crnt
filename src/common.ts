@@ -1,3 +1,5 @@
+import type * as Bun from 'bun';
+
 /**
  * @categoryDescription Common
  * Common functions and types.
@@ -63,6 +65,36 @@ export function _makeAbortSignal(
 }
 
 /**
+ * Detect if we're running in Bun runtime
+ */
+export function isBunRuntime(): boolean {
+  return typeof (globalThis as { Bun?: typeof Bun }).Bun !== 'undefined';
+}
+
+/**
+ * Get Bun's peek function if available
+ */
+function getBunPeek(): {
+  status(promise: Promise<unknown>): 'pending' | 'fulfilled' | 'rejected';
+} | null {
+  if (!isBunRuntime()) {
+    return null;
+  }
+
+  try {
+    // Try to access Bun's peek from the global Bun object
+    const peek = (globalThis as { Bun?: typeof Bun }).Bun?.peek;
+    if (peek && typeof peek.status === 'function') {
+      return peek;
+    }
+  } catch {
+    // Ignore errors and fall back to manual tracking
+  }
+
+  return null;
+}
+
+/**
  * Create a function that checks whether a given promise is resolved or not.
  *
  * Note: the returned function is synchronous, and within the same microtask boundary, it's guaranteed to return the same value.
@@ -72,6 +104,19 @@ export function _makeAbortSignal(
 export async function isResolvedChecker(
   promise: Promise<unknown>
 ): Promise<() => Resolved> {
+  // Use Bun's peek.status() method if available for better performance
+  const bunPeek = getBunPeek();
+  if (bunPeek) {
+    return () => {
+      const status = bunPeek.status(promise);
+      if (status === 'pending') {
+        return false;
+      }
+      return status;
+    };
+  }
+
+  // Fallback to manual tracking for other runtimes
   const existingState = promiseMapInternal.get(promise);
   if (existingState != null) {
     return existingState.isResolved;
@@ -108,6 +153,17 @@ export async function isResolvedChecker(
 export async function isResolved(
   promise: Promise<unknown>
 ): Promise<false | 'fulfilled' | 'rejected'> {
+  // Use Bun's peek.status() method directly if available for synchronous checking
+  const bunPeek = getBunPeek();
+  if (bunPeek) {
+    const status = bunPeek.status(promise);
+    if (status === 'pending') {
+      return false;
+    }
+    return status;
+  }
+
+  // Fallback to async checking for other runtimes
   return (await isResolvedChecker(promise))();
 }
 
