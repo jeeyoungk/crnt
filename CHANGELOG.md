@@ -1,3 +1,10 @@
+## [0.0.29](https://github.com/jeeyoungk/crnt/compare/v0.0.28...v0.0.29) (2025-08-18)
+
+
+### Features
+
+* Adding vitest-browser based testing ([#6](https://github.com/jeeyoungk/crnt/issues/6)) ([ae4b13d](https://github.com/jeeyoungk/crnt/commit/ae4b13d8390e6f3a843cbdca0d5c1cc8d924abfa))
+
 ## [0.0.28](https://github.com/jeeyoungk/crnt/compare/v0.0.27...v0.0.28) (2025-08-17)
 
 
