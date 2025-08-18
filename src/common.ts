@@ -74,9 +74,7 @@ export function isBunRuntime(): boolean {
 /**
  * Get Bun's peek function if available
  */
-function getBunPeek(): {
-  status(promise: Promise<unknown>): 'pending' | 'fulfilled' | 'rejected';
-} | null {
+function getBunPeek(): typeof Bun.peek | null {
   if (!isBunRuntime()) {
     return null;
   }

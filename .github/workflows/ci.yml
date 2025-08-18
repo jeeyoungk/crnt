@@ -25,6 +25,17 @@ jobs:
       - name: Install dependencies
         id: install
         run: bun install
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+      - name: Install Playwright browsers
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
       - name: Check code formatting
         if: always() && steps.install.conclusion == 'success'
         run: bun run format
@@ -40,12 +51,15 @@ jobs:
       - name: Check package exports
         if: always() && steps.install.conclusion == 'success'
         run: bun run check:attw
-      - name: Run tests
+      - name: Test (bun)
         if: always() && steps.install.conclusion == 'success'
         run: bun test
-      - name: Run tests with Vitest
+      - name: Test (node via vitest)
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest
+      - name: Run browser tests
+        if: always() && steps.install.conclusion == 'success'
+        run: npx vitest --browser
       - name: Run Documentation
         if: always() && steps.install.conclusion == 'success'
         run: bun run docs --treatWarningsAsErrors
