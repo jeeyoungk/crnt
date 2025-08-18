@@ -151,16 +151,6 @@ export async function isResolvedChecker(
 export async function isResolved(
   promise: Promise<unknown>
 ): Promise<false | 'fulfilled' | 'rejected'> {
-  // Use Bun's peek.status() method directly if available for synchronous checking
-  const bunPeek = getBunPeek();
-  if (bunPeek) {
-    const status = bunPeek.status(promise);
-    if (status === 'pending') {
-      return false;
-    }
-    return status;
-  }
-
   // Fallback to async checking for other runtimes
   return (await isResolvedChecker(promise))();
 }
