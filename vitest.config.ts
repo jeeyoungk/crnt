@@ -7,7 +7,7 @@ export default defineConfig({
     },
     // Browser mode configuration
     browser: {
-      enabled: true,
+      enabled: false, // by default, false; enable it via CLI.
       provider: 'playwright',
       instances: [
         {

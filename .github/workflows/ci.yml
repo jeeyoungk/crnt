@@ -25,6 +25,8 @@ jobs:
       - name: Install dependencies
         id: install
         run: bun install
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
       - name: Check code formatting
         if: always() && steps.install.conclusion == 'success'
         run: bun run format
@@ -40,15 +42,12 @@ jobs:
       - name: Check package exports
         if: always() && steps.install.conclusion == 'success'
         run: bun run check:attw
-      - name: Run tests
+      - name: Test (bun)
         if: always() && steps.install.conclusion == 'success'
         run: bun test
-      - name: Run tests with Vitest
+      - name: Test (node via vitest)
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest
-      - name: Install Playwright browsers
-        if: always() && steps.install.conclusion == 'success'
-        run: npx playwright install --with-deps chromium
       - name: Run browser tests
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest --browser
