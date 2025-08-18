@@ -29,12 +29,5 @@ export {
 export { toBufferedAsyncIterable } from './concurrent-iterator';
 export { abortPromise, abortRace, sleep } from './abort';
 export { parallelMap } from './util';
-export {
-  BinaryHeap,
-  ascendingComparator,
-  descendingComparator,
-  type Heap,
-  type Comparator,
-} from './heap';
 
 export { DeterministicPromise } from './promise';

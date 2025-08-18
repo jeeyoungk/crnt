@@ -20,26 +20,6 @@ export interface Heap<Value> {
 export type Comparator<T> = (a: T, b: T) => number;
 
 /**
- * Ascending comparator for numeric values (min-heap behavior)
- * @category Data Structure
- */
-export function ascendingComparator<T>(a: T, b: T): number {
-  if (a < b) return -1;
-  if (a > b) return 1;
-  return 0;
-}
-
-/**
- * Descending comparator for numeric values (max-heap behavior)
- * @category Data Structure
- */
-export function descendingComparator<T>(a: T, b: T): number {
-  if (a < b) return 1;
-  if (a > b) return -1;
-  return 0;
-}
-
-/**
  * Binary heap implementation with configurable comparison function
  * @category Data Structure
  */
