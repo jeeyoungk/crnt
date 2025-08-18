@@ -11,8 +11,6 @@ export {
 export {
   disposeSymbol,
   asyncDisposeSymbol,
-  type Disposable,
-  type AsyncDisposable,
 } from './polyfill-explicit-resource-management';
 export { newQueue, type Queue } from './queue';
 export {
@@ -31,5 +29,12 @@ export {
 export { toBufferedAsyncIterable } from './concurrent-iterator';
 export { abortPromise, abortRace, sleep } from './abort';
 export { parallelMap } from './util';
+export {
+  BinaryHeap,
+  ascendingComparator,
+  descendingComparator,
+  type Heap,
+  type Comparator,
+} from './heap';
 
 export { DeterministicPromise } from './promise';

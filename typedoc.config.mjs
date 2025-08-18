@@ -74,6 +74,8 @@ const config = {
         'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/AsyncIterator',
       // Promise doc is a bit noisy.
       // Promise: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',
+      Disposable:
+        'https://github.com/tc39/proposal-explicit-resource-management',
     },
     global: {
       // Promise: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise',

@@ -1,8 +1,11 @@
 import { _makeAbortSignal, CrntError, type Options } from './common';
 import { disposeSymbol } from './polyfill-explicit-resource-management';
 import { withResolvers } from './test-helpers';
+import { BinaryHeap, type Heap } from './heap';
 
 /**
+ * Result of a {@link Semaphore.acquire} operation. This is a {@link Disposable} that can be released when no longer needed.
+ *
  * @category Data Structure
  * @summary A permit that can be released when no longer needed, supporting TC39 resource management.
  */
@@ -21,13 +24,25 @@ export interface SemaphorePermit extends Disposable {
  */
 export interface Semaphore {
   /** asynchronously acquire a permit, waiting until one becomes available, or throw if aborted */
-  acquire(options?: Options): Promise<SemaphorePermit>;
+  acquire(options?: AcquireOptions): Promise<SemaphorePermit>;
   /** synchronously acquire a permit if one is available, otherwise return undefined */
   maybeAcquire(): SemaphorePermit | undefined;
   /** release a permit, making it available for other operations */
   release(): void;
   /** run a function with a semaphore, acquiring a permit before running and releasing it after */
-  run<T>(fn: () => Promise<T>, options?: Options): Promise<T>;
+  run<T>(fn: () => Promise<T>, options?: AcquireOptions): Promise<T>;
+}
+
+/**
+ * @inline
+ */
+interface AcquireOptions extends Options {
+  /**
+   * If provided, the acquire operation will be given priority over other operations.
+   *
+   * The default priority is 0.
+   */
+  priority?: number;
 }
 
 /**
@@ -67,11 +82,11 @@ export function newSemaphore(permits: number): Semaphore {
 }
 
 class DefaultSemaphorePermit implements SemaphorePermit {
-  private semaphore: DefaultSemaphore;
-  private released = false;
+  #semaphore: DefaultSemaphore;
+  #released = false;
 
   constructor(semaphore: DefaultSemaphore) {
-    this.semaphore = semaphore;
+    this.#semaphore = semaphore;
   }
 
   [disposeSymbol](): void {
@@ -79,43 +94,57 @@ class DefaultSemaphorePermit implements SemaphorePermit {
   }
 
   release(): void {
-    if (this.released) {
+    if (this.#released) {
       return;
     }
-    this.released = true;
-    this.semaphore.release();
+    this.#released = true;
+    this.#semaphore.release();
   }
 }
 
 export class DefaultSemaphore implements Semaphore {
   /** current number of active permits */
-  private permits: number;
+  #permits: number;
   /** maximum number of permits */
-  private readonly maxPermits: number;
-  private readonly waiting: Set<WaitingEntry> = new Set();
+  readonly #maxPermits: number;
+  readonly #waiting: Heap<WaitingEntry> = new BinaryHeap(
+    (a: WaitingEntry, b: WaitingEntry) => {
+      // Compare priority first, then sequence for FIFO within same priority
+      if (a.priority !== b.priority) return a.priority - b.priority;
+      return a.sequence - b.sequence;
+    }
+  );
+  #counter = 0;
 
   constructor(permits: number) {
-    this.permits = permits;
-    this.maxPermits = permits;
+    this.#permits = permits;
+    this.#maxPermits = permits;
   }
 
-  async acquire(options?: Options): Promise<SemaphorePermit> {
+  async acquire(options?: AcquireOptions): Promise<SemaphorePermit> {
     const signal = _makeAbortSignal(options);
 
     signal?.throwIfAborted();
 
-    if (this.permits > 0) {
-      this.permits--;
+    if (this.#permits > 0) {
+      this.#permits--;
       return new DefaultSemaphorePermit(this);
     }
 
     const { promise, resolve, reject } = withResolvers<void>();
-    const waitingEntry: WaitingEntry = { resolve };
-    this.waiting.add(waitingEntry);
+    const priority = options?.priority ?? 0;
+    const sequence = this.#counter++;
+    const waitingEntry: WaitingEntry = {
+      resolve,
+      priority,
+      sequence,
+      aborted: false,
+    };
+    this.#waiting.insert(waitingEntry);
 
     if (signal) {
       const onAbort = () => {
-        this.waiting.delete(waitingEntry);
+        waitingEntry.aborted = true;
         reject(signal.reason);
       };
 
@@ -134,29 +163,33 @@ export class DefaultSemaphore implements Semaphore {
   }
 
   maybeAcquire(): SemaphorePermit | undefined {
-    if (this.permits > 0) {
-      this.permits--;
+    if (this.#permits > 0) {
+      this.#permits--;
       return new DefaultSemaphorePermit(this);
     }
     return undefined;
   }
 
   release(): void {
-    if (this.waiting.size > 0) {
-      const next = this.waiting.values().next().value;
-      next!.resolve();
-      this.waiting.delete(next!);
-    } else {
-      if (this.permits >= this.maxPermits) {
-        throw new CrntError(
-          `Cannot release permit: would exceed initial permit count of ${this.maxPermits}`
-        );
+    // Keep extracting until we find a non-aborted entry or the heap is empty
+    while (this.#waiting.size > 0) {
+      const next = this.#waiting.pop();
+      if (next && !next.aborted) {
+        next.resolve();
+        return;
       }
-      this.permits++;
     }
+
+    // No waiting entries, increment permits
+    if (this.#permits >= this.#maxPermits) {
+      throw new CrntError(
+        `Cannot release permit: would exceed initial permit count of ${this.#maxPermits}`
+      );
+    }
+    this.#permits++;
   }
 
-  async run<T>(fn: () => Promise<T>, options?: Options): Promise<T> {
+  async run<T>(fn: () => Promise<T>, options?: AcquireOptions): Promise<T> {
     const permit = await this.acquire(options);
     try {
       return await fn();
@@ -168,4 +201,7 @@ export class DefaultSemaphore implements Semaphore {
 
 interface WaitingEntry {
   resolve: () => void;
+  priority: number;
+  sequence: number;
+  aborted: boolean;
 }
