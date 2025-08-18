@@ -46,6 +46,12 @@ jobs:
       - name: Run tests with Vitest
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest
+      - name: Install Playwright browsers
+        if: always() && steps.install.conclusion == 'success'
+        run: npx playwright install --with-deps chromium
+      - name: Run browser tests
+        if: always() && steps.install.conclusion == 'success'
+        run: npx vitest --browser
       - name: Run Documentation
         if: always() && steps.install.conclusion == 'success'
         run: bun run docs --treatWarningsAsErrors

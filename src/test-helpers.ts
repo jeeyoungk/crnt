@@ -36,7 +36,10 @@ export async function expectAbortError(
   } catch (error) {
     if (
       error instanceof Error &&
-      error.message.includes('operation was aborted')
+      // node / bun
+      (error.message.includes('operation was aborted') ||
+        // chrome
+        error.message.includes('signal is aborted without reason'))
     ) {
       return; // Success - got the expected abort error
     }

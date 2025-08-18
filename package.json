@@ -25,6 +25,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:vitest": "npx vitest",
+    "test:browser": "npx vitest --browser",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "format": "prettier --check . --cache",
@@ -60,16 +61,18 @@
     "@types/sinonjs__fake-timers": "^8.1.5",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
+    "@vitest/browser": "^3.2.4",
     "eslint": "^9.33.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-json-schema-validator": "^5.4.1",
     "globals": "^16.3.0",
+    "playwright": "^1.54.2",
     "prettier": "^3.6.2",
     "semantic-release": "^24.2.7",
     "tsup": "^8.5.0",
     "typedoc": "^0.28.9",
     "typescript": "^5.9.2",
-    "vitest": "^3.0.0"
+    "vitest": "^3.2.4"
   },
   "peerDependencies": {
     "@sinonjs/fake-timers": "^14.0.0",
