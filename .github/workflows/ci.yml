@@ -51,13 +51,13 @@ jobs:
       - name: Check package exports
         if: always() && steps.install.conclusion == 'success'
         run: bun run check:attw
-      - name: Test (bun)
+      - name: Test (🥐 bun)
         if: always() && steps.install.conclusion == 'success'
         run: bun test
-      - name: Test (node via vitest)
+      - name: Test (⚡️ node via vitest)
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest
-      - name: Run browser tests
+      - name: Test (🌎 browser via playwright)
         if: always() && steps.install.conclusion == 'success'
         run: npx vitest --browser
       - name: Run Documentation
