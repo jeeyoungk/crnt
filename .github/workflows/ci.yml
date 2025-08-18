@@ -25,8 +25,17 @@ jobs:
       - name: Install dependencies
         id: install
         run: bun install
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
       - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: npx playwright install chromium
+      - name: Install Playwright system dependencies
+        run: npx playwright install-deps chromium
       - name: Check code formatting
         if: always() && steps.install.conclusion == 'success'
         run: bun run format
