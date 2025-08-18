@@ -11,8 +11,6 @@ export {
 export {
   disposeSymbol,
   asyncDisposeSymbol,
-  type Disposable,
-  type AsyncDisposable,
 } from './polyfill-explicit-resource-management';
 export { newQueue, type Queue } from './queue';
 export {
