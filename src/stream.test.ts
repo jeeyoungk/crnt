@@ -91,32 +91,36 @@ describe('Stream', () => {
   describe('map', () => {
     test('maps over items sequentially', async () => {
       const stream = newStream([1, 2, 3, 4, 5]);
-      const results = await stream.map(async x => x * 2);
+      const results = await stream.map(async x => x * 2).toArray();
       expect(results).toEqual([2, 4, 6, 8, 10]);
     });
 
     test('maps with concurrency', async () => {
       const stream = newStream([1, 2, 3, 4, 5]);
-      const results = await stream.map(
-        async x => {
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return x * 2;
-        },
-        { concurrency: 3 }
-      );
+      const results = await stream
+        .map(
+          async x => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return x * 2;
+          },
+          { concurrency: 3 }
+        )
+        .toArray();
       expect(results).toEqual([2, 4, 6, 8, 10]);
     });
 
     test('processes items with concurrency', async () => {
       const stream = newStream([1, 2, 3, 4, 5]);
       const startTime = Date.now();
-      const results = await stream.map(
-        async x => {
-          await new Promise(resolve => setTimeout(resolve, 20));
-          return x * 2;
-        },
-        { concurrency: 5 }
-      );
+      const results = await stream
+        .map(
+          async x => {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            return x * 2;
+          },
+          { concurrency: 5 }
+        )
+        .toArray();
       const endTime = Date.now();
 
       // Results should contain all transformed items (order may vary due to concurrency)
@@ -136,7 +140,7 @@ describe('Stream', () => {
 
     test('works with empty stream', async () => {
       const stream = newStream([]);
-      const results = await stream.map(async x => x * 2);
+      const results = await stream.map(async x => x * 2).toArray();
       expect(results).toEqual([]);
     });
   });
@@ -146,13 +150,15 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4, 5, 6]);
       const batches: number[][] = [];
 
-      const results = await stream.mapBatch(
-        async batch => {
-          batches.push([...batch]);
-          return batch.map(x => x * 2);
-        },
-        { batchSize: 2 }
-      );
+      const results = await stream
+        .mapBatch(
+          async batch => {
+            batches.push([...batch]);
+            return batch.map(x => x * 2);
+          },
+          { batchSize: 2 }
+        )
+        .toArray();
 
       expect(results).toEqual([2, 4, 6, 8, 10, 12]);
       expect(batches).toEqual([
@@ -166,13 +172,15 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4, 5]);
       const batches: number[][] = [];
 
-      const results = await stream.mapBatch(
-        async batch => {
-          batches.push([...batch]);
-          return batch.map(x => x * 2);
-        },
-        { batchSize: 2 }
-      );
+      const results = await stream
+        .mapBatch(
+          async batch => {
+            batches.push([...batch]);
+            return batch.map(x => x * 2);
+          },
+          { batchSize: 2 }
+        )
+        .toArray();
 
       expect(results).toEqual([2, 4, 6, 8, 10]);
       expect(batches).toEqual([[1, 2], [3, 4], [5]]);
@@ -182,15 +190,17 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4, 5, 6]);
       const processingTimes: number[] = [];
 
-      const results = await stream.mapBatch(
-        async batch => {
-          const start = Date.now();
-          await new Promise(resolve => setTimeout(resolve, 50));
-          processingTimes.push(Date.now() - start);
-          return batch.map(x => x * 2);
-        },
-        { batchSize: 2, concurrency: 2 }
-      );
+      const results = await stream
+        .mapBatch(
+          async batch => {
+            const start = Date.now();
+            await new Promise(resolve => setTimeout(resolve, 50));
+            processingTimes.push(Date.now() - start);
+            return batch.map(x => x * 2);
+          },
+          { batchSize: 2, concurrency: 2 }
+        )
+        .toArray();
 
       expect(results).toEqual([2, 4, 6, 8, 10, 12]);
       expect(processingTimes.length).toBe(3); // 3 batches
@@ -211,10 +221,9 @@ describe('Stream', () => {
 
     test('works with single item batches', async () => {
       const stream = newStream([1, 2, 3]);
-      const results = await stream.mapBatch(
-        async batch => batch.map(x => x * 2),
-        { batchSize: 1 }
-      );
+      const results = await stream
+        .mapBatch(async batch => batch.map(x => x * 2), { batchSize: 1 })
+        .toArray();
       expect(results).toEqual([2, 4, 6]);
     });
 
@@ -222,13 +231,15 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3]);
       const batches: number[][] = [];
 
-      const results = await stream.mapBatch(
-        async batch => {
-          batches.push([...batch]);
-          return batch.map(x => x * 2);
-        },
-        { batchSize: 10 }
-      );
+      const results = await stream
+        .mapBatch(
+          async batch => {
+            batches.push([...batch]);
+            return batch.map(x => x * 2);
+          },
+          { batchSize: 10 }
+        )
+        .toArray();
 
       expect(results).toEqual([2, 4, 6]);
       expect(batches).toEqual([[1, 2, 3]]);
@@ -236,10 +247,9 @@ describe('Stream', () => {
 
     test('handles empty batches gracefully', async () => {
       const stream = newStream([]);
-      const results = await stream.mapBatch(
-        async batch => batch.map(x => x * 2),
-        { batchSize: 2 }
-      );
+      const results = await stream
+        .mapBatch(async batch => batch.map(x => x * 2), { batchSize: 2 })
+        .toArray();
       expect(results).toEqual([]);
     });
   });
@@ -247,7 +257,10 @@ describe('Stream', () => {
   describe('chaining operations', () => {
     test('chains map operations', async () => {
       const stream = newStream([1, 2, 3, 4, 5]);
-      const results = await stream.map(async x => x * 2).map(async x => x + 1);
+      const results = await stream
+        .map(async x => x * 2)
+        .map(async x => x + 1)
+        .toArray();
 
       expect(results).toEqual([3, 5, 7, 9, 11]);
     });
@@ -256,7 +269,8 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4]);
       const results = await stream
         .map(async x => x * 2)
-        .mapBatch(async batch => batch.map(x => x + 1), { batchSize: 2 });
+        .mapBatch(async batch => batch.map(x => x + 1), { batchSize: 2 })
+        .toArray();
 
       expect(results).toEqual([3, 5, 7, 9]);
     });
@@ -265,32 +279,10 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4, 5], { concurrency: 2 });
       const results = await stream
         .map(async x => x * 2, { concurrency: 3 }) // Override concurrency
-        .map(async x => x + 1); // Should use stream's default concurrency
+        .map(async x => x + 1)
+        .toArray(); // Should use stream's default concurrency
 
       expect(results).toEqual([3, 5, 7, 9, 11]);
-    });
-  });
-
-  describe('Promise integration', () => {
-    test('can be awaited directly', async () => {
-      const stream = newStream([1, 2, 3]);
-      const results = await stream;
-      expect(results).toEqual([1, 2, 3]);
-    });
-
-    test('then method works', async () => {
-      const stream = newStream([1, 2, 3]);
-      const results = await stream.then(arr => arr.map(x => x * 2));
-      expect(results).toEqual([2, 4, 6]);
-    });
-
-    test('catch method works', async () => {
-      const stream = newStream([1, 2, 3]).map(async x => {
-        if (x === 2) throw new Error('Test error');
-        return x;
-      });
-
-      await expect(stream.then(x => x)).rejects.toThrow('Test error');
     });
   });
 
@@ -323,15 +315,17 @@ describe('Stream', () => {
       const stream = newStream([1, 2, 3, 4, 5]);
 
       // Use variable delays to make items complete out of order naturally
-      const results = await stream.map(
-        async x => {
-          // Item 1 takes longest, item 5 takes shortest
-          const delay = (6 - x) * 10;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return x * 10;
-        },
-        { concurrency: 5, preserveOrder: true }
-      );
+      const results = await stream
+        .map(
+          async x => {
+            // Item 1 takes longest, item 5 takes shortest
+            const delay = (6 - x) * 10;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x * 10;
+          },
+          { concurrency: 5, preserveOrder: true }
+        )
+        .toArray();
 
       // Results should be in original order despite processing times
       expect(results).toEqual([10, 20, 30, 40, 50]);
@@ -339,28 +333,32 @@ describe('Stream', () => {
 
     test('map does not preserve order when preserveOrder=false', async () => {
       // Simple test with only 2 items and extreme delay difference
-      const unorderedResults = await newStream([1, 2]).map(
-        async x => {
-          // First item takes much longer than second - reduced from 200ms to 20ms
-          const delay = x === 1 ? 20 : 1;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return x;
-        },
-        { concurrency: 2, preserveOrder: false }
-      );
+      const unorderedResults = await newStream([1, 2])
+        .map(
+          async x => {
+            // First item takes much longer than second - reduced from 200ms to 20ms
+            const delay = x === 1 ? 20 : 1;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x;
+          },
+          { concurrency: 2, preserveOrder: false }
+        )
+        .toArray();
 
       // With preserveOrder=false, second item should finish first
       expect(unorderedResults).toEqual([2, 1]);
 
-      const orderedResults = await newStream([1, 2]).map(
-        async x => {
-          // Same delays
-          const delay = x === 1 ? 20 : 1;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return x;
-        },
-        { concurrency: 2, preserveOrder: true }
-      );
+      const orderedResults = await newStream([1, 2])
+        .map(
+          async x => {
+            // Same delays
+            const delay = x === 1 ? 20 : 1;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x;
+          },
+          { concurrency: 2, preserveOrder: true }
+        )
+        .toArray();
 
       // With preserveOrder=true, should maintain original order
       expect(orderedResults).toEqual([1, 2]);
@@ -369,43 +367,49 @@ describe('Stream', () => {
     test('mapBatch preserves order when preserveOrder=true', async () => {
       const stream = newStream([1, 2, 3, 4, 5, 6]);
 
-      const results = await stream.mapBatch(
-        async batch => {
-          // First batch takes longer than second batch
-          const delay = batch.includes(1) ? 50 : 10;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return batch.map(x => x * 10);
-        },
-        { batchSize: 3, concurrency: 2, preserveOrder: true }
-      );
+      const results = await stream
+        .mapBatch(
+          async batch => {
+            // First batch takes longer than second batch
+            const delay = batch.includes(1) ? 50 : 10;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return batch.map(x => x * 10);
+          },
+          { batchSize: 3, concurrency: 2, preserveOrder: true }
+        )
+        .toArray();
 
       // Results should be in original order despite processing times
       expect(results).toEqual([10, 20, 30, 40, 50, 60]);
     });
 
     test('mapBatch does not preserve order when preserveOrder=false', async () => {
-      const unorderedResults = await newStream([1, 2, 3, 4]).mapBatch(
-        async batch => {
-          // First batch [1,2] takes longer, second batch [3,4] is faster - reduced from 200ms to 20ms
-          const delay = batch.includes(1) ? 20 : 1;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return batch;
-        },
-        { batchSize: 2, concurrency: 2, preserveOrder: false }
-      );
+      const unorderedResults = await newStream([1, 2, 3, 4])
+        .mapBatch(
+          async batch => {
+            // First batch [1,2] takes longer, second batch [3,4] is faster - reduced from 200ms to 20ms
+            const delay = batch.includes(1) ? 20 : 1;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return batch;
+          },
+          { batchSize: 2, concurrency: 2, preserveOrder: false }
+        )
+        .toArray();
 
       // With preserveOrder=false, second batch should complete first
       expect(unorderedResults).toEqual([3, 4, 1, 2]);
 
-      const orderedResults = await newStream([1, 2, 3, 4]).mapBatch(
-        async batch => {
-          // Same delays
-          const delay = batch.includes(1) ? 20 : 1;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return batch;
-        },
-        { batchSize: 2, concurrency: 2, preserveOrder: true }
-      );
+      const orderedResults = await newStream([1, 2, 3, 4])
+        .mapBatch(
+          async batch => {
+            // Same delays
+            const delay = batch.includes(1) ? 20 : 1;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return batch;
+          },
+          { batchSize: 2, concurrency: 2, preserveOrder: true }
+        )
+        .toArray();
 
       // With preserveOrder=true, should maintain original order
       expect(orderedResults).toEqual([1, 2, 3, 4]);
@@ -413,26 +417,30 @@ describe('Stream', () => {
 
     test('preserveOrder defaults to false', async () => {
       // Test with simple 2-item case
-      const defaultResults = await newStream([1, 2]).map(
-        async x => {
-          const delay = x === 1 ? 20 : 1; // reduced from 200ms to 20ms
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return x;
-        },
-        { concurrency: 2 } // No preserveOrder specified
-      );
+      const defaultResults = await newStream([1, 2])
+        .map(
+          async x => {
+            const delay = x === 1 ? 20 : 1; // reduced from 200ms to 20ms
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x;
+          },
+          { concurrency: 2 } // No preserveOrder specified
+        )
+        .toArray();
 
       // Default should behave like preserveOrder=false
       expect(defaultResults).toEqual([2, 1]);
 
-      const explicitFalseResults = await newStream([1, 2]).map(
-        async x => {
-          const delay = x === 1 ? 20 : 1;
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return x;
-        },
-        { concurrency: 2, preserveOrder: false }
-      );
+      const explicitFalseResults = await newStream([1, 2])
+        .map(
+          async x => {
+            const delay = x === 1 ? 20 : 1;
+            await new Promise(resolve => setTimeout(resolve, delay));
+            return x;
+          },
+          { concurrency: 2, preserveOrder: false }
+        )
+        .toArray();
 
       // Both should behave the same way
       expect(defaultResults).toEqual(explicitFalseResults);
@@ -455,7 +463,8 @@ describe('Stream', () => {
             return batch.map(x => x + 1);
           },
           { batchSize: 2, preserveOrder: true }
-        );
+        )
+        .toArray();
 
       expect(results).toEqual([3, 5, 7, 9]);
     });
@@ -463,13 +472,15 @@ describe('Stream', () => {
     test('preserveOrder with single item processes correctly', async () => {
       const stream = newStream([42]);
 
-      const results = await stream.map(
-        async x => {
-          await new Promise(resolve => setTimeout(resolve, 10));
-          return x * 2;
-        },
-        { preserveOrder: true }
-      );
+      const results = await stream
+        .map(
+          async x => {
+            await new Promise(resolve => setTimeout(resolve, 10));
+            return x * 2;
+          },
+          { preserveOrder: true }
+        )
+        .toArray();
 
       expect(results).toEqual([84]);
     });
@@ -477,9 +488,11 @@ describe('Stream', () => {
     test('preserveOrder with empty stream', async () => {
       const stream = newStream([]);
 
-      const results = await stream.map(async x => x * 2, {
-        preserveOrder: true,
-      });
+      const results = await stream
+        .map(async x => x * 2, {
+          preserveOrder: true,
+        })
+        .toArray();
 
       expect(results).toEqual([]);
     });
@@ -488,23 +501,24 @@ describe('Stream', () => {
   describe('edge cases', () => {
     test('handles very large concurrency', async () => {
       const stream = newStream([1, 2, 3]);
-      const results = await stream.map(async x => x * 2, { concurrency: 1000 });
+      const results = await stream
+        .map(async x => x * 2, { concurrency: 1000 })
+        .toArray();
       expect(results).toEqual([2, 4, 6]);
     });
 
     test('handles zero batchSize gracefully', async () => {
       const stream = newStream([1, 2, 3]);
       // BatchSize of 0 should be treated as 1
-      const results = await stream.mapBatch(
-        async batch => batch.map(x => x * 2),
-        { batchSize: 0 }
-      );
+      const results = await stream
+        .mapBatch(async batch => batch.map(x => x * 2), { batchSize: 0 })
+        .toArray();
       expect(results).toEqual([2, 4, 6]);
     });
 
     test('handles undefined configuration', async () => {
       const stream = newStream([1, 2, 3]);
-      const results = await stream.map(async x => x * 2, undefined);
+      const results = await stream.map(async x => x * 2, undefined).toArray();
       expect(results).toEqual([2, 4, 6]);
     });
   });

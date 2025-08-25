@@ -143,7 +143,7 @@ export interface StreamConfig extends MapOption, BatchOption, Options {}
  * @template T - The type of items in the stream
  * @category Stream
  */
-export interface Stream<T> extends AsyncIterable<T>, PromiseLike<T[]> {
+export interface Stream<T> extends AsyncIterable<T> {
   /**
    * Maps a function over each item in the stream with controlled concurrency.
    *
@@ -369,13 +369,6 @@ export class DefaultStream<T> implements Stream<T> {
     }
 
     return new DefaultStream(mapBatchIterable(this.iterable), this.config);
-  }
-
-  then<TResult1 = T[], TResult2 = never>(
-    onfulfilled?: ((value: T[]) => TResult1 | PromiseLike<TResult1>) | null,
-    onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null
-  ): PromiseLike<TResult1 | TResult2> {
-    return this.toArray().then(onfulfilled, onrejected);
   }
 
   async toArray(): Promise<T[]> {
