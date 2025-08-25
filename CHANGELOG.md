@@ -1,3 +1,10 @@
+## [0.0.30](https://github.com/jeeyoungk/crnt/compare/v0.0.29...v0.0.30) (2025-08-25)
+
+
+### Bug Fixes
+
+* remove then() from Stream as it is causing more confusion than good ([60234d4](https://github.com/jeeyoungk/crnt/commit/60234d4ae8f3828f40cb782eccf625cc28efd0b3))
+
 ## [0.0.29](https://github.com/jeeyoungk/crnt/compare/v0.0.28...v0.0.29) (2025-08-18)
 
 
