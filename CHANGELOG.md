@@ -1,3 +1,10 @@
+## [0.0.31](https://github.com/jeeyoungk/crnt/compare/v0.0.30...v0.0.31) (2025-08-25)
+
+
+### Bug Fixes
+
+* asArray instead of toArray ([17f5ecc](https://github.com/jeeyoungk/crnt/commit/17f5ecc2f4c53a49ad0144c76bc75fd6d96353ad))
+
 ## [0.0.30](https://github.com/jeeyoungk/crnt/compare/v0.0.29...v0.0.30) (2025-08-25)
 
 
