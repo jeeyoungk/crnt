@@ -505,39 +505,39 @@ test('toArray() returns items in correct FIFO order for circular queue', () => {
   queue.maybeEnqueue(2);
   queue.maybeEnqueue(3);
 
-  expect(queue.toArray()).toEqual([1, 2, 3]);
+  expect(queue.asArray()).toEqual([1, 2, 3]);
 
   // Dequeue first item
   const [first] = queue.maybeDequeue();
   expect(first).toBe(1);
-  expect(queue.toArray()).toEqual([2, 3]);
+  expect(queue.asArray()).toEqual([2, 3]);
 
   // Add more items to test wrap-around
   queue.maybeEnqueue(4);
   queue.maybeEnqueue(5);
   queue.maybeEnqueue(6); // This should wrap around in the circular buffer
 
-  expect(queue.toArray()).toEqual([2, 3, 4, 5, 6]);
+  expect(queue.asArray()).toEqual([2, 3, 4, 5, 6]);
 });
 
 test('toArray() handles empty queue correctly', () => {
   const queue = new DefaultQueue<string>(3);
-  expect(queue.toArray()).toEqual([]);
+  expect(queue.asArray()).toEqual([]);
 
   queue.maybeEnqueue('a');
-  expect(queue.toArray()).toEqual(['a']);
+  expect(queue.asArray()).toEqual(['a']);
 
   queue.maybeDequeue();
-  expect(queue.toArray()).toEqual([]);
+  expect(queue.asArray()).toEqual([]);
 });
 
 test('toArray() returns empty array for zero-capacity queue', async () => {
   const queue = new DefaultQueue<number>(0);
-  expect(queue.toArray()).toEqual([]);
+  expect(queue.asArray()).toEqual([]);
 
   // Even with waiting operations, toArray should be empty
   const dequeuePromise = queue.dequeue();
-  expect(queue.toArray()).toEqual([]);
+  expect(queue.asArray()).toEqual([]);
 
   // Clean up the waiting promise
   queue.maybeEnqueue(1);
@@ -556,7 +556,7 @@ test('Circular queue handles buffer expansion correctly for infinite capacity', 
   expect(queue.size).toBe(itemCount);
 
   // Verify FIFO order is maintained after expansion
-  const result = queue.toArray();
+  const result = queue.asArray();
   expect(result.length).toBe(itemCount);
   for (let i = 0; i < itemCount; i++) {
     expect(result[i]).toBe(i);
@@ -571,7 +571,7 @@ test('Circular queue handles buffer expansion correctly for infinite capacity', 
   await queue.enqueue(100);
   await queue.enqueue(101);
 
-  const finalArray = queue.toArray();
+  const finalArray = queue.asArray();
   expect(finalArray.slice(0, 5)).toEqual([10, 11, 12, 13, 14]); // First remaining items
   expect(finalArray.slice(-2)).toEqual([100, 101]); // Last added items
 });
@@ -595,7 +595,7 @@ test('Circular queue maintains performance with wrap-around operations', () => {
   }
 
   expect(queue.size).toBe(10);
-  expect(queue.toArray()).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+  expect(queue.asArray()).toEqual([5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
 
   // Verify FIFO order is maintained
   const results = [];

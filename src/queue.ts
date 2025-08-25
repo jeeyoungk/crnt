@@ -50,7 +50,7 @@ export interface Queue<T> extends AsyncIterable<T> {
   /** synchronously dequeue an item if there is one, or return false */
   maybeDequeue(): [T, true] | [undefined, false];
   /** Returns the copy of the current items in the queue, in the first-in-first-out (FIFO) order. This is mostly useful for debugging. */
-  toArray(): T[];
+  asArray(): T[];
   /** close the queue, preventing further enqueue operations but allowing dequeue until exhausted */
   close(): void;
   /** the number of items in the queue */
@@ -264,7 +264,7 @@ export class DefaultQueue<T> implements Queue<T> {
     return this.#capacity;
   }
 
-  toArray(): T[] {
+  asArray(): T[] {
     if (this.#capacity === 0 || this.#size === 0) {
       return [];
     }
