@@ -383,6 +383,32 @@ describe('Stream', () => {
       expect(results).toEqual([10, 20, 30, 40, 50, 60]);
     });
 
+    test('preserveOrder: later batch rejecting first is not an unhandled rejection', async () => {
+      // Batch 2 rejects while batch 1 is still pending. Only the head batch is
+      // raced, so without a handler on batch 2 vitest reports an unhandled
+      // rejection and fails the run.
+      const stream = newStream([1, 2]).map(
+        async x => {
+          if (x === 1) {
+            await new Promise(resolve => setTimeout(resolve, 20));
+            return x;
+          }
+          throw new Error(`boom ${x}`);
+        },
+        { concurrency: 2, preserveOrder: true }
+      );
+
+      const results: number[] = [];
+      await expect(
+        (async () => {
+          for await (const item of stream) {
+            results.push(item);
+          }
+        })()
+      ).rejects.toThrow('boom 2');
+      expect(results).toEqual([1]);
+    });
+
     test('mapBatch does not preserve order when preserveOrder=false', async () => {
       const unorderedResults = await newStream([1, 2, 3, 4])
         .mapBatch(

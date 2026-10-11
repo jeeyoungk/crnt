@@ -12,8 +12,7 @@
 export const disposeSymbol: typeof Symbol.dispose =
   typeof Symbol.dispose !== 'undefined'
     ? Symbol.dispose
-    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (Symbol.for('Symbol.dispose') as any);
+    : (Symbol.for('Symbol.dispose') as typeof Symbol.dispose);
 
 /**
  * Symbol for asynchronous disposal - use this instead of Symbol.asyncDispose
@@ -21,8 +20,7 @@ export const disposeSymbol: typeof Symbol.dispose =
 export const asyncDisposeSymbol: typeof Symbol.asyncDispose =
   typeof Symbol.asyncDispose !== 'undefined'
     ? Symbol.asyncDispose
-    : // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (Symbol.for('Symbol.asyncDispose') as any);
+    : (Symbol.for('Symbol.asyncDispose') as typeof Symbol.asyncDispose);
 
 /**
  * Interface for objects that can be disposed synchronously using our module symbols
