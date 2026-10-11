@@ -75,10 +75,6 @@
     "typescript": "^5.9.2",
     "vitest": "^3.2.4"
   },
-  "peerDependencies": {
-    "@sinonjs/fake-timers": "^14.0.0",
-    "@types/sinonjs__fake-timers": "^8.1.5"
-  },
   "engines": {
     "node": ">=20"
   },
