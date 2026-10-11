@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import { abortRace, sleep } from './abort';
 import { newSemaphore } from './semaphore';
 import { DefaultQueue } from './queue';
 import {
@@ -116,6 +117,33 @@ describe('timeout timers and signal listeners are released once an operation set
         afterImmediate: { timers: 0, listeners: 0 },
         afterWaiting: { timers: 0, listeners: 0 },
         afterThrow: { timers: 0, listeners: 0 },
+      });
+    });
+  });
+
+  test('abortRace and sleep remove their listener once settled', async () => {
+    await withManualClock(async clock => {
+      const controller = new AbortController();
+      const listenerCount = trackListeners(controller.signal);
+
+      const raced = await abortRace(Promise.resolve('done'), controller.signal);
+      const afterRace = listenerCount();
+
+      const slept = sleep(10, controller.signal);
+      const whileSleeping = listenerCount();
+      clock.tick(10);
+      await slept;
+
+      expect({
+        raced,
+        afterRace,
+        whileSleeping,
+        afterSleep: listenerCount(),
+      }).toMatchObject({
+        raced: 'done',
+        afterRace: 0,
+        whileSleeping: 1,
+        afterSleep: 0,
       });
     });
   });
