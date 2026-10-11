@@ -1,3 +1,10 @@
+## [0.0.32](https://github.com/jeeyoungk/crnt/compare/v0.0.31...v0.0.32) (2026-10-11)
+
+
+### Bug Fixes
+
+* **release:** publish to npm via trusted publishing (OIDC) ([#9](https://github.com/jeeyoungk/crnt/issues/9)) ([6d31b74](https://github.com/jeeyoungk/crnt/commit/6d31b7490a575de7e9bcb03b6c238167bcc4c3a3))
+
 ## [0.0.31](https://github.com/jeeyoungk/crnt/compare/v0.0.30...v0.0.31) (2025-08-25)
 
 
