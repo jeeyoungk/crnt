@@ -1,5 +1,5 @@
 import type * as Bun from 'bun';
-import { test, expect, describe, afterEach, beforeEach } from 'bun:test';
+import { test, expect, describe, afterEach, beforeEach } from 'vitest';
 import {
   _makeAbortSignal,
   type Options,

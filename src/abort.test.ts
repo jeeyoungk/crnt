@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { abortPromise, abortRace, sleep } from './abort';
 import { withFakeTimers, expectAbortError } from './test-helpers';
 

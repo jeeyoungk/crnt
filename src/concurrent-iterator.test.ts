@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'bun:test';
+import { test, expect, describe } from 'vitest';
 import { toBufferedAsyncIterable } from './concurrent-iterator';
 import './test-helpers'; // Import withResolvers utility
 

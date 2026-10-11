@@ -1,4 +1,4 @@
-import { describe, expect, test } from 'bun:test';
+import { describe, expect, test } from 'vitest';
 import { DEADLOCK_ERROR, withFakeTimers } from './test-helpers';
 
 describe('withFakeTimers', () => {
