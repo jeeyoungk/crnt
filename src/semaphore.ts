@@ -1,6 +1,10 @@
-import { _makeAbortSignal, CrntError, type Options } from './common';
+import {
+  _makeAbortSignal,
+  CrntError,
+  type Options,
+  withResolvers,
+} from './common';
 import { disposeSymbol } from './polyfill-explicit-resource-management';
-import { withResolvers } from './test-helpers';
 import { BinaryHeap, type Heap } from './heap';
 
 /**

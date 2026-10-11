@@ -3,8 +3,8 @@ import {
   type Options,
   QueueClosedError,
   CrntError,
+  withResolvers,
 } from './common';
-import { withResolvers } from './test-helpers';
 
 /**
  * An asynchronous queue. This is modelled after:
