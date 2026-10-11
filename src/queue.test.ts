@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'bun:test';
+import { test, expect, describe } from 'vitest';
 import { DefaultQueue } from './queue';
 import { withFakeTimers } from './test-helpers';
 import { QueueClosedError, type Options } from './common';

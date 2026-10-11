@@ -23,15 +23,14 @@
   "scripts": {
     "tsup": "tsup",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
-    "test:vitest": "npx vitest",
-    "test:browser": "npx vitest --browser",
+    "test": "vitest run",
+    "test:browser": "vitest run --browser",
     "lint": "eslint . --cache",
     "lint:fix": "eslint . --fix --cache",
     "format": "prettier --check . --cache",
     "format:fix": "prettier --write . --cache",
     "check:attw": "attw --pack .",
-    "check": "bun run lint && bun run format && bun run typecheck && bun run tsup && bun run check:attw",
+    "check": "pnpm lint && pnpm format && pnpm typecheck && pnpm tsup && pnpm check:attw",
     "docs": "typedoc",
     "semantic-release": "semantic-release"
   },
@@ -53,12 +52,13 @@
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.2",
+    "@eslint/js": "^9.39.5",
     "@faker-js/faker": "^9.9.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/git": "^10.0.1",
     "@semantic-release/github": "^11.0.4",
     "@sinonjs/fake-timers": "^14.0.0",
-    "@types/bun": "latest",
+    "@types/bun": "^1.4.2",
     "@types/sinonjs__fake-timers": "^8.1.5",
     "@typescript-eslint/eslint-plugin": "^8.39.0",
     "@typescript-eslint/parser": "^8.39.0",
@@ -84,6 +84,12 @@
   },
   "publishConfig": {
     "provenance": true
+  },
+  "packageManager": "pnpm@10.28.0",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   },
   "version": "0.0.31"
 }

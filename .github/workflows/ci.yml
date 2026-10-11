@@ -13,56 +13,51 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - # we use bun for everything, but test against node to ensure that it is working.
-        name: Setup Node.js
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20 # minimum version supported by our library.
+          cache: pnpm
       - name: Install dependencies
         id: install
-        run: bun install
+        run: pnpm install --frozen-lockfile
       - name: Cache Playwright browsers
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('bun.lock') }}
+          key: ${{ runner.os }}-playwright-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Playwright browsers
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: npx playwright install chromium
+        run: pnpm exec playwright install chromium
       - name: Install Playwright system dependencies
-        run: npx playwright install-deps chromium
+        run: pnpm exec playwright install-deps chromium
       - name: Check code formatting
         if: always() && steps.install.conclusion == 'success'
-        run: bun run format
+        run: pnpm format
       - name: Run linting
         if: always() && steps.install.conclusion == 'success'
-        run: bun run lint
+        run: pnpm lint
       - name: Run type checking
         if: always() && steps.install.conclusion == 'success'
-        run: bun run typecheck
+        run: pnpm typecheck
       - name: Build package
         if: always() && steps.install.conclusion == 'success'
-        run: bun run tsup
+        run: pnpm tsup
       - name: Check package exports
         if: always() && steps.install.conclusion == 'success'
-        run: bun run check:attw
-      - name: Test (🥐 bun)
-        if: always() && steps.install.conclusion == 'success'
-        run: bun test
+        run: pnpm check:attw
       - name: Test (⚡️ node via vitest)
         if: always() && steps.install.conclusion == 'success'
-        run: npx vitest
+        run: pnpm test
       - name: Test (🌎 browser via playwright)
         if: always() && steps.install.conclusion == 'success'
-        run: npx vitest --browser
+        run: pnpm test:browser
       - name: Run Documentation
         if: always() && steps.install.conclusion == 'success'
-        run: bun run docs --treatWarningsAsErrors
+        run: pnpm run docs --treatWarningsAsErrors
 
   release:
     runs-on: ubuntu-latest
@@ -79,14 +74,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          bun-version: latest
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
       - name: Install dependencies
-        run: bun install
+        run: pnpm install --frozen-lockfile
       - name: Build package
-        run: bun run tsup
+        run: pnpm tsup
       - name: Release and Publish
         id: semantic_release
         run: |
@@ -95,7 +94,7 @@ jobs:
           echo "before_sha=$BEFORE_SHA" >> $GITHUB_OUTPUT
 
           # Run semantic-release
-          bun run semantic-release
+          pnpm semantic-release
 
           # Check if semantic-release created a new commit (indicating a release)
           AFTER_SHA=$(git rev-parse HEAD)
@@ -111,7 +110,7 @@ jobs:
       # This one needs to be after release, as release changes the version number.
       - name: Generate documentation
         if: always() && steps.semantic_release.outputs.new_release == 'true'
-        run: bun run docs
+        run: pnpm run docs
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         if: always() && steps.semantic_release.outputs.new_release == 'true'

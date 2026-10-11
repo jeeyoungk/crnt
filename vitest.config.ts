@@ -22,10 +22,4 @@ export default defineConfig({
       toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'],
     },
   },
-  resolve: {
-    alias: {
-      // allows vitest to run, while the imports are bun:test.
-      'bun:test': 'vitest',
-    },
-  },
 });

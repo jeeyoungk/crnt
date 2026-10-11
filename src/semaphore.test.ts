@@ -1,4 +1,4 @@
-import { test, expect } from 'bun:test';
+import { test, expect } from 'vitest';
 import { DefaultSemaphore, newSemaphore } from './semaphore';
 import { CrntError } from './common';
 import { withFakeTimers, expectAbortError } from './test-helpers';

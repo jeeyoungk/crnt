@@ -1,4 +1,4 @@
-import { test, expect, describe } from 'bun:test';
+import { test, expect, describe } from 'vitest';
 import { newStream, DefaultStream } from './stream';
 
 // Helper function to create an async iterable from an array with optional delays
