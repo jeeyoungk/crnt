@@ -2,7 +2,7 @@
   "compilerOptions": {
     // Environment setup & latest features
     "lib": ["ES2022", "ESNext.Disposable"],
-    // target ES2022, which is supported by Node 20.
+    // target ES2022, which is supported by Node 22.
     "target": "ES2022",
     "module": "Preserve",
     "moduleDetection": "force",
