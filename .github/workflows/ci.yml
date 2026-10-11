@@ -57,7 +57,7 @@ jobs:
         run: pnpm test:browser
       - name: Run Documentation
         if: always() && steps.install.conclusion == 'success'
-        run: pnpm docs --treatWarningsAsErrors
+        run: pnpm run docs --treatWarningsAsErrors
 
   release:
     runs-on: ubuntu-latest
@@ -110,7 +110,7 @@ jobs:
       # This one needs to be after release, as release changes the version number.
       - name: Generate documentation
         if: always() && steps.semantic_release.outputs.new_release == 'true'
-        run: pnpm docs
+        run: pnpm run docs
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         if: always() && steps.semantic_release.outputs.new_release == 'true'

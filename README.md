@@ -8,8 +8,8 @@ CRNT is a TypeScript library for async and concurrent programming primitives.
 
 ```bash
 npm install crnt
-pnpm instsall crnt
 pnpm add crnt
+bun add crnt
 ```
 
 # Overview / Philosophy
