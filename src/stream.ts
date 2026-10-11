@@ -264,8 +264,12 @@ export class DefaultStream<T> implements Stream<T> {
           const results = await fn(batch);
           return { type: 'BATCH', results, promiseId: currentPromiseId };
         })();
+        // A batch may settle before it is raced (with preserveOrder only the
+        // head batch is raced) or after the consumer stopped iterating. Mark
+        // the rejection as handled so it does not surface as an unhandled
+        // rejection; it is still rethrown when the batch is raced below.
+        promise.catch(() => {});
         pendingBatches.set(currentPromiseId, promise);
-        return promise;
       };
 
       const hasMoreInput = () => !iteratorDone;
