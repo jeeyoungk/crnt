@@ -1,3 +1,10 @@
+## [0.0.34](https://github.com/jeeyoungk/crnt/compare/v0.0.33...v0.0.34) (2026-10-11)
+
+
+### Performance Improvements
+
+* mark package as side-effect free ([#14](https://github.com/jeeyoungk/crnt/issues/14)) ([9d54cca](https://github.com/jeeyoungk/crnt/commit/9d54ccae33978730839cf41e59fdacaedd10023f))
+
 ## [0.0.33](https://github.com/jeeyoungk/crnt/compare/v0.0.32...v0.0.33) (2026-10-11)
 
 
