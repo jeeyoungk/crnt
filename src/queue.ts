@@ -89,7 +89,7 @@ export class DefaultQueue<T> implements Queue<T> {
     this.#capacity = capacity;
     // For infinite capacity, start with a reasonable buffer size that grows as needed
     const initialBufferSize = capacity === Infinity ? 16 : capacity;
-    this.#buffer = new Array(initialBufferSize);
+    this.#buffer = new Array<T | undefined>(initialBufferSize);
   }
 
   #expandBuffer(): void {
@@ -99,7 +99,7 @@ export class DefaultQueue<T> implements Queue<T> {
 
     const oldBuffer = this.#buffer;
     const newSize = oldBuffer.length * 2;
-    this.#buffer = new Array(newSize);
+    this.#buffer = new Array<T | undefined>(newSize);
 
     // Copy items from old buffer to new buffer starting at index 0
     for (let i = 0; i < this.#size; i++) {
@@ -233,7 +233,7 @@ export class DefaultQueue<T> implements Queue<T> {
     // Try immediate handoff first (works for both zero-capacity and regular queues)
     const maybeResult = this.maybeDequeue();
     if (maybeResult[1]) {
-      return Promise.resolve(maybeResult[0]!);
+      return Promise.resolve(maybeResult[0]);
     }
 
     // If queue is closed and empty, throw QueueClosedError

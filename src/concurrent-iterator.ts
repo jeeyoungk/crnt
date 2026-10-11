@@ -76,7 +76,9 @@ export function toBufferedAsyncIterable<T>(
 
           // Start background filler on first call
           if (!fillerStarted) {
-            startBackgroundFiller(); // Don't await - let it run in background
+            // Fire-and-forget: the filler runs in the background and never
+            // rejects; source errors are delivered through the queue as 'ERROR'.
+            void startBackgroundFiller();
           }
 
           // Get the next message from the queue

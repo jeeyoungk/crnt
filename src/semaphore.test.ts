@@ -489,7 +489,7 @@ test('SemaphorePermit supports Symbol.dispose (synchronous disposal)', async () 
   expect(semaphore.maybeAcquire()).toBeUndefined(); // 0 left
 
   // Dispose using disposeSymbol
-  permit[disposeSymbol]!();
+  permit[disposeSymbol]();
 
   // Verify permit was released
   expect(semaphore.maybeAcquire()).toBeDefined(); // 1 available again
@@ -517,12 +517,12 @@ test('SemaphorePermit can be disposed multiple times safely', async () => {
   const permit = await semaphore.acquire();
 
   // First disposal
-  permit[disposeSymbol]!();
+  permit[disposeSymbol]();
   expect(semaphore.maybeAcquire()).toBeDefined();
   semaphore.release(); // Put it back
 
   // Second disposal should be safe (no-op)
-  permit[disposeSymbol]!();
+  permit[disposeSymbol]();
   expect(semaphore.maybeAcquire()).toBeDefined();
 });
 
@@ -553,7 +553,9 @@ test('SemaphorePermit works with await using declaration syntax', async () => {
 
   // Simulate await using declaration behavior
   {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    // SemaphorePermit is only sync-disposable; `await using` falls back to
+    // [Symbol.dispose], which is the path this test exercises.
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/await-thenable
     await using permit = await semaphore.acquire();
 
     // Verify permit was acquired - should have 1 left
@@ -580,7 +582,7 @@ test('maybeAcquirePermit returns permit when available', () => {
   expect(semaphore.maybeAcquire()).toBeUndefined();
 
   // Release and try again
-  permit![disposeSymbol]!();
+  permit![disposeSymbol]();
   expect(semaphore.maybeAcquire()).toBeDefined();
 });
 

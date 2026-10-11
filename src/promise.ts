@@ -22,7 +22,8 @@ async function all<T extends readonly unknown[] | []>(
       if (!isPromise(value)) {
         continue;
       } else if ((await isResolved(value)) === 'rejected') {
-        return Promise.reject(await value);
+        // Awaiting the rejected promise rethrows its reason as-is.
+        await value;
       }
     }
   }

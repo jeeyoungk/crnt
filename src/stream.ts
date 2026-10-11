@@ -248,7 +248,7 @@ export class DefaultStream<T> implements Stream<T> {
       const pendingBatches = new Map<number, Promise<BatchTask>>();
       const iterator = source[Symbol.asyncIterator]();
       // the last value from iterator.next() that has not been awaited yet.
-      let pendingNext: Promise<IteratorResult<T>> | null = null;
+      let pendingNext: Promise<IteratorResult<T, unknown>> | null = null;
       let iteratorDone = false;
       let batchIdCounter = 0;
 
@@ -307,7 +307,7 @@ export class DefaultStream<T> implements Stream<T> {
 
           // Build list of promises to race. TODO: handle abortion here too.
           const racePromises: Promise<
-            TimeoutTask | BatchTask | IteratorResult<T>
+            TimeoutTask | BatchTask | IteratorResult<T, unknown>
           >[] = [];
 
           // Add input consumption if we have space and input
@@ -453,6 +453,9 @@ function toAsyncIterable<T, TReturn = unknown, TNext = unknown>(
     [Symbol.asyncIterator]: () => {
       const iterator = iterable[Symbol.iterator]();
       const response: AsyncIterator<T, TReturn, TNext> = {
+        // `async` (without await) turns a synchronous throw from the wrapped
+        // iterator into a rejection, as the async iterator protocol expects.
+        // eslint-disable-next-line @typescript-eslint/require-await
         next: async () => iterator.next(),
       };
       if (iterator.return) {
@@ -465,6 +468,7 @@ function toAsyncIterable<T, TReturn = unknown, TNext = unknown>(
       if (iterator.throw) {
         response.throw = async (
           error?: unknown
+          // eslint-disable-next-line @typescript-eslint/require-await -- see next() above
         ): Promise<IteratorResult<T, TReturn>> => {
           return iterator.throw!(error);
         };

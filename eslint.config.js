@@ -1,22 +1,21 @@
 import js from '@eslint/js';
-import tseslint from '@typescript-eslint/eslint-plugin';
-import tsparser from '@typescript-eslint/parser';
+import { defineConfig } from 'eslint/config';
 import prettier from 'eslint-config-prettier';
-import globals from 'globals';
 import jsonSchemaValidator from 'eslint-plugin-json-schema-validator';
+import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
-export default [
+export default defineConfig(
   {
     ignores: ['dist/**', 'docs/**', 'node_modules/**'],
   },
-  js.configs.recommended,
   {
-    files: ['**/*.{ts,tsx}'],
+    files: ['**/*.{ts,tsx,js,mjs,cjs}'],
+    extends: [js.configs.recommended, tseslint.configs.recommendedTypeChecked],
     languageOptions: {
-      parser: tsparser,
       parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
       },
       globals: {
         ...globals.browser,
@@ -24,14 +23,20 @@ export default [
         NodeJS: 'readonly',
       },
     },
-    plugins: {
-      '@typescript-eslint': tseslint,
-    },
+  },
+  {
+    files: ['**/*.{ts,tsx}'],
     rules: {
-      ...tseslint.configs.recommended.rules,
       '@typescript-eslint/no-unused-vars': 'error',
       '@typescript-eslint/no-explicit-any': 'warn',
       '@typescript-eslint/explicit-function-return-type': 'off',
+      // Abort helpers reject with `signal.reason` (typed `any`) unchanged, the
+      // same value `signal.throwIfAborted()` throws. Match only-throw-error's
+      // defaults, which already allow throwing `any`/`unknown`.
+      '@typescript-eslint/prefer-promise-reject-errors': [
+        'error',
+        { allowThrowingAny: true, allowThrowingUnknown: true },
+      ],
       // Prevent imports from dist directory
       'no-restricted-imports': [
         'error',
@@ -54,6 +59,19 @@ export default [
       ],
     },
   },
+  {
+    files: ['**/*.test.ts'],
+    rules: {
+      // Tests pass many `async x => x * 2`-style callbacks to APIs that take
+      // `(x) => Promise<U>`; the missing `await` is intentional there.
+      '@typescript-eslint/require-await': 'off',
+    },
+  },
+  {
+    // Plain JS config files are not part of the TypeScript program.
+    files: ['**/*.{js,mjs,cjs}'],
+    extends: [tseslint.configs.disableTypeChecked],
+  },
   ...jsonSchemaValidator.configs['flat/recommended'],
-  prettier,
-];
+  prettier
+);
