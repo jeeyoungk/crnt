@@ -1,3 +1,4 @@
+import { playwright } from '@vitest/browser-playwright';
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
@@ -8,7 +9,7 @@ export default defineConfig({
     // Browser mode configuration
     browser: {
       enabled: false, // by default, false; enable it via CLI.
-      provider: 'playwright',
+      provider: playwright(),
       instances: [
         {
           browser: 'chromium',
