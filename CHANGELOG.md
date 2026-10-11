@@ -1,3 +1,10 @@
+## [0.0.33](https://github.com/jeeyoungk/crnt/compare/v0.0.32...v0.0.33) (2026-10-11)
+
+
+### Bug Fixes
+
+* stop bundling @sinonjs/fake-timers into the library ([#10](https://github.com/jeeyoungk/crnt/issues/10)) ([7c4293d](https://github.com/jeeyoungk/crnt/commit/7c4293d2333ac63a2b95825c6d63e966dbe9880d))
+
 ## [0.0.32](https://github.com/jeeyoungk/crnt/compare/v0.0.31...v0.0.32) (2026-10-11)
 
 
