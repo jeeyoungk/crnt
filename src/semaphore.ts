@@ -1,5 +1,5 @@
 import {
-  _makeAbortSignal,
+  _makeScopedAbortSignal,
   CrntError,
   type Options,
   withResolvers,
@@ -126,8 +126,18 @@ export class DefaultSemaphore implements Semaphore {
   }
 
   async acquire(options?: AcquireOptions): Promise<SemaphorePermit> {
-    const signal = _makeAbortSignal(options);
+    const { signal, cleanup } = _makeScopedAbortSignal(options);
+    try {
+      return await this.#acquire(signal, options?.priority ?? 0);
+    } finally {
+      cleanup();
+    }
+  }
 
+  async #acquire(
+    signal: AbortSignal | undefined,
+    priority: number
+  ): Promise<SemaphorePermit> {
     signal?.throwIfAborted();
 
     if (this.#permits > 0) {
@@ -136,7 +146,6 @@ export class DefaultSemaphore implements Semaphore {
     }
 
     const { promise, resolve, reject } = withResolvers<void>();
-    const priority = options?.priority ?? 0;
     const sequence = this.#counter++;
     const waitingEntry: WaitingEntry = {
       resolve,

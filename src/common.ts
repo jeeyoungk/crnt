@@ -41,27 +41,46 @@ export interface Options {
 export function _makeAbortSignal(
   options: Options | undefined
 ): AbortSignal | undefined {
+  return _makeScopedAbortSignal(options).signal;
+}
+
+const noop = () => {};
+
+/**
+ * Like {@link _makeAbortSignal}, but also returns `cleanup`, which clears the
+ * timeout timer and removes the listener added to `options.signal`. Call it
+ * once the operation has settled; otherwise the timer stays scheduled until
+ * it fires, and a long-lived `options.signal` accumulates one listener per
+ * call.
+ */
+export function _makeScopedAbortSignal(options: Options | undefined): {
+  signal: AbortSignal | undefined;
+  cleanup: () => void;
+} {
   if (options == null) {
-    return undefined;
+    return { signal: undefined, cleanup: noop };
   }
   const { signal, timeout } = options;
   if (timeout == null) {
-    return signal;
+    return { signal, cleanup: noop };
   }
   const controller = new AbortController();
   const clear = withTimeout(controller, timeout);
   if (signal == null) {
-    return controller.signal;
+    return { signal: controller.signal, cleanup: clear };
   }
-  signal.addEventListener(
-    'abort',
-    () => {
+  const onAbort = () => {
+    clear();
+    controller.abort(signal.reason);
+  };
+  signal.addEventListener('abort', onAbort, { once: true });
+  return {
+    signal: AbortSignal.any([controller.signal, signal]),
+    cleanup: () => {
       clear();
-      controller.abort(signal.reason);
+      signal.removeEventListener('abort', onAbort);
     },
-    { once: true }
-  );
-  return AbortSignal.any([controller.signal, signal]);
+  };
 }
 
 /**

@@ -1,29 +1,13 @@
 import { test, expect } from 'vitest';
-import { install, type Clock } from '@sinonjs/fake-timers';
 import { parallelMap } from './util';
 import { newSemaphore } from './semaphore';
 import { isResolved } from './common';
 import {
   expectAbortError,
   withFakeTimers,
+  withManualClock,
   withResolvers,
 } from './test-helpers';
-
-/**
- * Fake timers that only advance when the test ticks the clock. Unlike
- * {@link withFakeTimers}, pending timers are not run eagerly, so the test can
- * observe state right before and after a timeout fires.
- */
-async function withManualClock(
-  testFn: (clock: Clock) => Promise<void>
-): Promise<void> {
-  const clock = install();
-  try {
-    await testFn(clock);
-  } finally {
-    clock.uninstall();
-  }
-}
 
 /** Let pending microtasks (acquire / release chains) settle. */
 async function flush(): Promise<void> {
