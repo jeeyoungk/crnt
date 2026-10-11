@@ -1,4 +1,4 @@
-import { install, type InstalledClock } from '@sinonjs/fake-timers';
+import { install, type Clock } from '@sinonjs/fake-timers';
 import { CrntError, isResolved } from './common';
 
 export { withResolvers } from './common';
@@ -34,7 +34,7 @@ export const DEADLOCK_ERROR =
  * Helper for tests that need deterministic timing.
  */
 export async function withFakeTimers<T>(
-  testFn: (clock: InstalledClock) => Promise<T>
+  testFn: (clock: Clock) => Promise<T>
 ): Promise<T> {
   const clock = install();
   try {

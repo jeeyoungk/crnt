@@ -12,19 +12,19 @@ jobs:
     name: Code Quality & Tests
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20 # minimum version supported by our library.
+          node-version: 22 # minimum version supported by our library.
           cache: pnpm
       - name: Install dependencies
         id: install
         run: pnpm install --frozen-lockfile
       - name: Cache Playwright browsers
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
@@ -45,7 +45,7 @@ jobs:
         run: pnpm typecheck
       - name: Build package
         if: always() && steps.install.conclusion == 'success'
-        run: pnpm tsup
+        run: pnpm build
       - name: Check package exports
         if: always() && steps.install.conclusion == 'success'
         run: pnpm check:attw
@@ -71,20 +71,20 @@ jobs:
       pages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
       - name: Setup pnpm
-        uses: pnpm/action-setup@v4
+        uses: pnpm/action-setup@v6
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build package
-        run: pnpm tsup
+        run: pnpm build
       - name: Release and Publish
         id: semantic_release
         run: |
