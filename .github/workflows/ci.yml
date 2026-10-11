@@ -81,7 +81,6 @@ jobs:
         with:
           node-version: 24
           cache: pnpm
-          registry-url: https://registry.npmjs.org
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build package
@@ -106,7 +105,6 @@ jobs:
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       # This one needs to be after release, as release changes the version number.
       - name: Generate documentation
         if: always() && steps.semantic_release.outputs.new_release == 'true'
