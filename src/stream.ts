@@ -238,8 +238,9 @@ export class DefaultStream<T> implements Stream<T> {
   ): Stream<U> {
     const concurrency = config?.concurrency ?? this.concurrency ?? 1;
     const batchSize = config?.batchSize ?? this.batchSize ?? 1;
-    const batchDelay = config?.batchDelay;
-    const preserveOrder = config?.preserveOrder ?? false;
+    const batchDelay = config?.batchDelay ?? this.config.batchDelay;
+    const preserveOrder =
+      config?.preserveOrder ?? this.config.preserveOrder ?? false;
     const signal = this.signal;
 
     async function* mapBatchIterable(source: AsyncIterable<T>) {
