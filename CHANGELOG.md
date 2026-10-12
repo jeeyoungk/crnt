@@ -1,3 +1,11 @@
+## [0.0.35](https://github.com/jeeyoungk/crnt/compare/v0.0.34...v0.0.35) (2026-10-12)
+
+
+### Bug Fixes
+
+* clear timeout timers and abort listeners once an operation settles ([#18](https://github.com/jeeyoungk/crnt/issues/18)) ([574e70e](https://github.com/jeeyoungk/crnt/commit/574e70ec205c8fcbd6386c1e9740d73b05a529ea))
+* **stream:** honor preserveOrder and batchDelay from the stream config ([#20](https://github.com/jeeyoungk/crnt/issues/20)) ([b8a8938](https://github.com/jeeyoungk/crnt/commit/b8a8938c9ff93b78932a65a3a2f29a77d2744a73))
+
 ## [0.0.34](https://github.com/jeeyoungk/crnt/compare/v0.0.33...v0.0.34) (2026-10-11)
 
 
