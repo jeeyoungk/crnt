@@ -310,6 +310,56 @@ describe('Stream', () => {
     });
   });
 
+  describe('stream-level defaults', () => {
+    const delayed = async (x: number) => {
+      await new Promise(resolve => setTimeout(resolve, x === 1 ? 20 : 1));
+      return x;
+    };
+
+    test('preserveOrder from the stream config applies to map', async () => {
+      const results = await newStream([1, 2], { preserveOrder: true })
+        .map(delayed, { concurrency: 2 })
+        .toArray();
+      expect(results).toEqual([1, 2]);
+    });
+
+    test('per-call preserveOrder overrides the stream config', async () => {
+      const results = await newStream([1, 2], { preserveOrder: true })
+        .map(delayed, { concurrency: 2, preserveOrder: false })
+        .toArray();
+      expect(results).toEqual([2, 1]);
+    });
+
+    test('batchDelay from the stream config flushes an incomplete batch', async () => {
+      // The source pauses after two items until it sees the first batch
+      // (or 500ms pass), so a partial batch is only processed early if
+      // batchDelay flushes it.
+      let sawBatch: () => void = () => {};
+      const gate = new Promise<void>(resolve => (sawBatch = resolve));
+      async function* source() {
+        yield 1;
+        yield 2;
+        await Promise.race([
+          gate,
+          new Promise(resolve => setTimeout(resolve, 500)),
+        ]);
+        yield 3;
+      }
+      const batches: number[][] = [];
+      await newStream(source(), { batchDelay: 10 })
+        .mapBatch(
+          async batch => {
+            batches.push(batch);
+            sawBatch();
+            return batch;
+          },
+          { batchSize: 10 }
+        )
+        .toArray();
+      expect(batches).toEqual([[1, 2], [3]]);
+    });
+  });
+
   describe('preserveOrder', () => {
     test('map preserves order when preserveOrder=true', async () => {
       const stream = newStream([1, 2, 3, 4, 5]);
