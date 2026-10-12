@@ -1,29 +1,13 @@
 import { test, expect } from 'vitest';
-import { install, type Clock } from '@sinonjs/fake-timers';
 import { parallelMap } from './util';
 import { newSemaphore } from './semaphore';
 import { isResolved } from './common';
 import {
   expectAbortError,
   withFakeTimers,
+  withManualClock,
   withResolvers,
 } from './test-helpers';
-
-/**
- * Fake timers that only advance when the test ticks the clock. Unlike
- * {@link withFakeTimers}, pending timers are not run eagerly, so the test can
- * observe state right before and after a timeout fires.
- */
-async function withManualClock(
-  testFn: (clock: Clock) => Promise<void>
-): Promise<void> {
-  const clock = install();
-  try {
-    await testFn(clock);
-  } finally {
-    clock.uninstall();
-  }
-}
 
 /** Let pending microtasks (acquire / release chains) settle. */
 async function flush(): Promise<void> {
@@ -295,5 +279,77 @@ test('parallelMap completes when tasks finish before the timeout', async () => {
       await flush();
     }
     expect(await result).toEqual([0, 2, 4]);
+  });
+});
+
+test('parallelMap with an already-aborted signal starts nothing, even with free permits', async () => {
+  const semaphore = newSemaphore(3);
+  const tasks = controlledTasks<number, number>();
+  const controller = new AbortController();
+  controller.abort();
+
+  await expectAbortError(
+    parallelMap([0, 1], tasks.fn, semaphore, { signal: controller.signal })
+  );
+  expect({
+    started: tasks.state.started,
+    permitsLeft: [
+      semaphore.maybeAcquire(),
+      semaphore.maybeAcquire(),
+      semaphore.maybeAcquire(),
+    ].filter(p => p !== undefined).length,
+  }).toMatchObject({ started: [], permitsLeft: 3 });
+});
+
+test('parallelMap rejects on abort while every item is running', async () => {
+  const semaphore = newSemaphore(2);
+  const tasks = controlledTasks<number, number>();
+  const controller = new AbortController();
+  const result = parallelMap([0, 1], tasks.fn, semaphore, {
+    signal: controller.signal,
+  });
+  result.catch(() => {});
+  await flush();
+
+  controller.abort();
+  await flush();
+  const settledAfterAbort = await isResolved(result);
+
+  // Running calls are not interrupted; they release their permits when done.
+  tasks.resolve(0, 0);
+  tasks.resolve(1, 1);
+  await flush();
+
+  expect({
+    settledAfterAbort,
+    started: tasks.state.started,
+    permitsReturned: [semaphore.maybeAcquire(), semaphore.maybeAcquire()].every(
+      p => p !== undefined
+    ),
+  }).toMatchObject({
+    settledAfterAbort: 'rejected',
+    started: [0, 1],
+    permitsReturned: true,
+  });
+  await expectAbortError(result);
+});
+
+test('parallelMap times out while every item is running', async () => {
+  await withManualClock(async clock => {
+    const tasks = controlledTasks<number, number>();
+    const result = parallelMap([0, 1], tasks.fn, 2, { timeout: 100 });
+    result.catch(() => {});
+    await flush();
+
+    await clock.tickAsync(99);
+    const beforeTimeout = await isResolved(result);
+    await clock.tickAsync(1);
+    const afterTimeout = await isResolved(result);
+
+    expect({ beforeTimeout, afterTimeout }).toMatchObject({
+      beforeTimeout: false,
+      afterTimeout: 'rejected',
+    });
+    await expectAbortError(result);
   });
 });

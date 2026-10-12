@@ -33,7 +33,16 @@ export async function abortRace<T>(
   signal: AbortSignal
 ): Promise<T> {
   signal.throwIfAborted();
-  return Promise.race([promise, abortPromise(signal)]);
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<never>((_, reject) => {
+    onAbort = () => reject(signal.reason);
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+  try {
+    return await Promise.race([promise, aborted]);
+  } finally {
+    signal.removeEventListener('abort', onAbort!);
+  }
 }
 
 /**
@@ -47,15 +56,15 @@ export function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     signal?.throwIfAborted();
 
-    const timeoutId = setTimeout(resolve, ms);
+    const abortHandler = () => {
+      clearTimeout(timeoutId);
+      reject(signal!.reason);
+    };
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener('abort', abortHandler);
+      resolve();
+    }, ms);
 
-    if (signal) {
-      const abortHandler = () => {
-        clearTimeout(timeoutId);
-        reject(signal.reason);
-      };
-
-      signal.addEventListener('abort', abortHandler, { once: true });
-    }
+    signal?.addEventListener('abort', abortHandler, { once: true });
   });
 }

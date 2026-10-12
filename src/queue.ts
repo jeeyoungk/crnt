@@ -1,5 +1,5 @@
 import {
-  _makeAbortSignal,
+  _makeScopedAbortSignal,
   type Options,
   QueueClosedError,
   CrntError,
@@ -198,7 +198,10 @@ export class DefaultQueue<T> implements Queue<T> {
    * note: this method (and {@link dequeue}) is implemented without "async" to ensure that task scheduling does not occur.
    */
   enqueue(item: T, options?: Options): Promise<void> {
-    const signal = _makeAbortSignal(options);
+    return _withScopedSignal(options, signal => this.#enqueue(item, signal));
+  }
+
+  #enqueue(item: T, signal: AbortSignal | undefined): Promise<void> {
     signal?.throwIfAborted();
 
     if (this.#closed) {
@@ -227,7 +230,10 @@ export class DefaultQueue<T> implements Queue<T> {
   }
 
   dequeue(options?: Options): Promise<T> {
-    const signal = _makeAbortSignal(options);
+    return _withScopedSignal(options, signal => this.#dequeue(signal));
+  }
+
+  #dequeue(signal: AbortSignal | undefined): Promise<T> {
     signal?.throwIfAborted();
 
     // Try immediate handoff first (works for both zero-capacity and regular queues)
@@ -343,4 +349,25 @@ function _addSignalListener<T>(
     signal.removeEventListener('abort', onAbort);
     originalResolve(item);
   };
+}
+
+/**
+ * Runs `fn` with a signal from {@link _makeScopedAbortSignal} and cleans it up
+ * once `fn` throws synchronously or its promise settles. Stays synchronous so
+ * that enqueue/dequeue do not add a scheduling tick.
+ */
+function _withScopedSignal<R>(
+  options: Options | undefined,
+  fn: (signal: AbortSignal | undefined) => Promise<R>
+): Promise<R> {
+  const { signal, cleanup } = _makeScopedAbortSignal(options);
+  let promise: Promise<R>;
+  try {
+    promise = fn(signal);
+  } catch (error) {
+    cleanup();
+    throw error;
+  }
+  promise.then(cleanup, cleanup);
+  return promise;
 }
